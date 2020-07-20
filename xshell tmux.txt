@@ -1,0 +1,35 @@
+xshell 사용법:
+ctrl tab 으로 탭전환  Shift tab이 탭전환
+
+ctrl shift tab으로 탭전환
+
+alt1 2 3 4 5 로 전환가능
+
+alt+ O 가 session목록보는거
+alt+ R이 반투명한창
+alt+shift+N 이 한세션더열기
+ctrl+d quit임
+
+
+tmux 사용법
+
+tmux new -s <session-name> 이 세션이름으로 여는거
+
+ctrl + a 가 prefix key .
+
+ctrl + a 누르고  떼고 v누르면 vertically 분해
+
+ctrl + a 누르고 c 하면 새 윈도우가 생성된다.
+
+ctrl + a 누르고 0 1 2 ... 이나 p (rev) n (ext) 하면 윈도우사이에 이동이 되고,  
+
+ctrl + 왼쪽 오른쪽하면 스플릿 된 창 사이에서 이동 가능. 
+
+ctrl+ a d 하면 detach 되서 잠시 멈춰놓을수 있고
+
+tmux attach -t <session-number 이나 이름>  쓰면 그 세션 다시 불러오기가능 (맨 왼쪽에 있는게 세션 number, 이름, 두번째는 아마 윈도우개수)
+
+ctrl+a $ 하면 세션이름수정가능
+
+vertical window 하나 닫기
+ctrl+d
