@@ -1,6 +1,58 @@
 
 # Kubernetes basic
 
+## 2020-07-21 today I learned
+
+쿠버네티스 구성: 노드와 컨트롤 플레인으로 구성.
+컨트롤 플레인은 워커 노드와 파드를 관리한다. (node는 kublet을 통해 kube-api-server( control plane) 와 통신
+
+#### Control Plane Components
+______________________
+애초에 클러스터 내의 어떤 머신에서던 control plane을 배정할 수 있지만 보통 worker node와 분리시킨다. 
+즉슨, 컨트롤 플레인은 실제 일을 하는 머신과 물리적으로나 어떻게던 떨어져 있는 머신에 배정하게 되나보다.
+
+ * kube-apiserver
+ - 쿠버네티스 api를 관리. 수평적 확장을 고려해서 디자인 되어 있다.
+ - 마스터 노드의 핵심 모듈이다. (마스터노드 == 컨트롤 플레인) 
+ - 사용자의 모든 요청을 처리
+ - kubectl의 요청 뿐만 아니라 control plane 즉 마스터 노드 안의 모듈의 요청도 처리하며 권한을 체크해서 요청 거부도 가능
+ - 사실 원하는 상태를 JSON 처럼 key -value 저장소에 저장하고 저장된 상태를 조회하는 매우 단순한 일을 해.
+ - pod을 노드에 할당하고 상태를 체크하는 일을 하지는 않음. (다른 모듈이 담당) 
+ 
+ * etcd 분산 데이터 저장소.
+ - RAFT 라는 분산환경 데이터 저장 알고리즘을 이용한 key- value 저장소. (여러개로 분산해서 복제도 가능)==reliabilty , fast, watch 기능도 있어 어떤 상태 변경시 특정 로직 실행 가능.
+ - 클러스터의 모든 설정과 상태 데이터가 여기에만! 저장되고 다른 모듈은 stateless기에 etcd만 있어도 클러스터 복구 가능. 
+ - etcd는 오직 api server만을 통해 접근 가능. 물론 etcd 또한. 이것도 그냥 sql중 하나라 미니 쿠버네티스 처럼 용량 작게 할 떈 sqlite 를 사용한다. 
+ 
+ * kube-scheduler
+ - 스케줄러는 할당되지 않은 pod을 여러 조건에 따라 적절한 노드 서버에 할당해준다. 
+ - 즉 노드에 직접 pod 배정해주는 애가 얘임.
+ 
+ * kube-controller-manager
+ - 쿠버네티스의 거의 모든 오브젝트의 상태를 관리. 
+ - 노드 컨트롤러: 노드 다운 시 통제
+- 레플레키에션 컨트롤러: 파드 수 조절
+- 엔드포인트 컨트롤러: 서비스-파드 연결
+- 서비스 어카운트 및 토큰 컨트롤러: 새로운 네임스페이스에 대한 계정 및 API 토큰 생성
+ - 오브젝트별로 분업화 되어 있어 deployment가 replicaset을 생성, replicaset이 pod를 생성, pod은 스케줄러에 의한 관리 받음
+ 
+ * cloud-controller-manager
+ - AWS,GCE,Azure 등 클라우드에 특화된 모델. 노드를 추가 삭제하고 로드 밸런서를 연결하거나 볼륨을 붙일 수 있다.
+ 
+___________________________________
+#### 하나의 pod이 생성되는 과정 (https://subicura.com/2019/05/19/kubernetes-basic-1.html)
+
+1. 관리자가 애플리케이션 배포를 위해 replicaset을 생성하려고 해.
+$ kubectl ~~~ 라며 api server에 replicaset을 만들라고 요청.
+2. controller은 이 replica set의 생성 요청을 감시하다 replica set이 만들어졌음을 알게 될 것
+3. 이제 pod 생성 요청이 controller과 api server간에 이루어지고
+4. 할당되지 않은 pod 이 생성되는 것을 보고자 하는 Scheduler은 pod 생성 요청을 감시하다가 
+5. 노드에 pod를 할당해달라고 api server에 요청한다.
+6. node의 kubelet은 api-server에 통신하며 pod가 자기 노드에 할당되는지 감시한다.
+7. node의 kubelet은 노드안의 docker에 컨테이너를 생성해달라는 요청을 하고
+8. kubelet은 api server에 pod이 어떤 상태인지 업데이트 시그널을 보내준다 .
+![](https://subicura.com/assets/article_images/2019-05-19-kubernetes-basic-1/create-replicaset.png)
+
 
 ## 2020-07-20 first day in lab
 
