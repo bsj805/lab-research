@@ -232,3 +232,79 @@ docker rm -v $(docker ps -a -q -f status=exited)
 컨테이너의 로그파일이 json 방식으로 저장이 되는데 이 용량이 커지니까 주의해야한다. 
 *exec 실행중인 컨테이너에 명령을 내릴 수 있게 된다. run은 무조건 컨테이너를 하나 생성하는거라 달라. 여기도 key 입력이 필요하니 -it옵션을 주어야한다. 이러면 mysql같이 서버만 실행시키고 호스트 컴퓨터의 mysql로 
 접속해서 실행했어야 하는것에서 서버의 mysql에 직접 명령을 내릴 수 있게 된다. 
+
+```bash
+docker run -d -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=true --name mysql mysql:5.7
+
+docker exec -it mysql /bin/bash
+
+$mysql -uroot
+
+mysql> show databases;
+
+mysql> quit
+
+exit
+```
+
+컨테이너를 삭제한다는 건 컨테이너에서 생성된 파일이 사라진다는 뜻입니다. 데이터베이스라면 그동안 쌓였던 데이터가 모두 사라진다는 것이고 웹 어플리케이션이라면 그동안 사용자가 업로드한 이미지가 모두 사라진다는 것입니다. ㄷㄷ
+즉 컨테이너 업데이트를 할 때 위에 쌓여있는 정보가 날라가면 안되지 않을까? 즉 컨테이너 삭제시 유지해야 하는 데이터는 컨테이너 내부가 아닌 외부 스토리지에 저장해야한다는 단점이 있다.
+클라우드 서비스를 이용하거나, 데이터 볼륨이라는 별도의 스토리지를 컨테이너에 추가해서 사용해야 한다.
+데이터 볼륨을 사용하면 해당 디렉토리는 컨테이너와 별도로 저장된다.
+
+*데이터 볼륨을 사용하는 방법
+_________________________
+호스트의 디렉토리를 마운트해서 사용할 수 있다.
+run 명령어에서 -v 로 특정 디렉토리를 컨테이너 안의 특정 디렉토리로 연결 해주자.
+-v 라는 것은 volume mount 의 약자.
+최신 버전의 이미지를 다운받고 다시 컨테이너를 실행할 때 동일한 디렉토리를 마운트 한다면 그대로 데이터를 사용할 수 있다. 
+```bash
+# before
+docker run -d -p 3306:3306 \
+  -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
+  --name mysql \
+  mysql:5.7
+
+# after
+docker run -d -p 3306:3306 \
+  -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
+  --name mysql \
+  -v /my/own/datadir:/var/lib/mysql \ # <- volume mount
+  mysql:5.7
+  ```
+  
+
+* Docker Compose. 
+YAML 방식의 설정파일을 이용한 도커의 설정을 관리하기 위한 툴.
+
+_______________________________________
+#### 도커 이미지 만들기
+![](https://subicura.com/assets/article_images/2017-02-10-docker-guide-for-beginners-create-image-and-deploy/create-image.png)
+
+<https://subicura.com/2017/02/10/docker-guide-for-beginners-create-image-and-deploy.html>
+
+도커는 이미지를 만들기 위해 컨테이너의 상태를 그대로 이미지로 저장하는 방식을 사용한다.
+어떤 어플을 이미지로 만들면, 리눅스만 설치된 컨테이너에 어플리케이션을 설치하고 그 상태를 그대로 이미지로 저장한다.
+호스트의 디렉토리를 루비가 설치된 컨테이너의 디렉토리에 마운트한다음 그대로 명령어를 실행하면 로컬에 개발 환경을 구축하지 않고 도커 컨테이너를 개발환경으로 사용할 수 있습니다. 어으썸!
+
+도커를 개발환경으로 사용하면 개발=테스트=운영이 동일한 환경에서 실행되는 놀라운 상황이 펼쳐집니다. 이 부분은 재미있는 내용이 많지만, 주제에서 벗어나므로 이 정도만 언급하고 다음 기회에 더 자세히 알아봅니다.
+```bash
+docker run --rm -p 4567:4567 -v $PWD:/usr/src/app -w /usr/src/app ruby bash -c "bundle install && bundle exec ruby app.rb -o 0.0.0.0"
+```
+curl https://localhost:4567 과 같이 이 웹서버에 접근해보면 
+byeon@uhoontu:~/sinatra$ curl http://localhost:4567
+f4f1f0e85b84byeon@uhoontu:~/sinatra$ 와 같이 get을 얻어오는 것을 볼 수 있다.
+
+이제 이미지를 만들 준비가 다 됐다고 한다.
+#### image 만들기
+
+도커는 이미지를 만들기 위해 Dockerfil이라는 이미지 빌드용 DSL(Domain Specific Language) 파일을 사용한다. 이는 단순 텍스트 파일로 일반적으로는 소스와 함께 관리된다.
+![](https://subicura.com/assets/article_images/2017-02-10-docker-guide-for-beginners-create-image-and-deploy/dockerfile.png)
+즉 이런 방식으로 이미지가 만들어진다. 
+
+### 도커 배포하기
+컨테이너 배포 방식
+컨테이너를 배포하는 방식은 기존 어플리케이션을 배포하는 방식과 차이가 나지.
+어떤 언어던 어떤 프레임워크를 쓰던 배포방식이 동일. 이미지를 다운받고 컨테이너를 실행하면 끝이다.
+즉 서버에 접속해서 컨테이너를 실행시켜주면 USER들은 어 새 어플이 생겼다 하는거지. 
+업데이트도 새 컨테이너를 만들고 이전 컨테이너를 중지하자. 
