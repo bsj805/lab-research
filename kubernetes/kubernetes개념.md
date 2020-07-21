@@ -53,6 +53,54 @@ $ kubectl ~~~ 라며 api server에 replicaset을 만들라고 요청.
 8. kubelet은 api server에 pod이 어떤 상태인지 업데이트 시그널을 보내준다 .
 ![](https://subicura.com/assets/article_images/2019-05-19-kubernetes-basic-1/create-replicaset.png)
 
+%%이런 사진 올리는버: issue 탭에서 new 한다음에 텍스트적는공간에 드래그앤드랍하면 됨.
+(https://hanee24.github.io/2017/12/21/how-to-upload-image-with-github-readme/ )
+
+*kubectl
+- replicaset 명세를 yml 파일로 정의하고 kubectl 도구를 이용해서 replicaset 생성 명령을 API server에전달
+- api server는 새 ReplicaSet Object를 etcd에 저장
+
+
+*kube controller 
+- kube Controller에 포함된 ReplicaSet Controller 가 ReplicaSet을 감시하다가 ReplicaSet에 정의된 Label Selector 조건을 만족하는 Pod 이 존재하는지 체크. 
+-해당 라벨의 pod이 없으면 ReplicaSet의 Pod 템플릿을 보고 새로운 Pod을 생성 ( 이 생성 또한 API server에 전달되어 etcd에 저장. 
+- 한 replicaset에 적어도 한 pod가 있어야 해서 그런가보다.
+
+*kube scheduler
+- kube scheduler는 할당되지 않은 pod가 있는지 체크, 있으면 조건에 맞는 Node를 찾아 pod를 할당
+
+*Kubelet
+- 자신의 노드에 할당되었지만 아직 생성되지 않은 pod이 있는지 체크.
+- 생성되지 않은 pod이 있으면 명세를 보고 pod를 생성
+- pod의 상태를 주기적으로 API Server에 전달.
+
+#### 도커 이해 해보자
+__________________
+(https://subicura.com/2017/01/19/docker-guide-for-beginners-1.html)
+
+##### container
+격리된 공간에서 프로세스가 동작하는 기술을 말한다. 
+기존에 OS 가상화는 호스트 OS 위에 게스트 OS를 가상화 (VMWARE, Virtual Box) 느려!
+그래서 CPU 가상화 기술을 통해 KVM이나 Xen 이 등장. 전체 OS를 가상화 하진 않아서 성능이 향상 되었다.
+![](https://subicura.com/assets/article_images/2017-01-19-docker-guide-for-beginners-1/vm-vs-docker.png)
+
+어쩄던 추가적으로 OS를 설치해야 했는데, 프로세스만을 격리시키는 방식이 등장하였다.
+
+* 하나의 서버에 여러개의 컨테이너를 실행하면 서로 영향을 미치지 않고 독립적으로 실행된다.
+실행중인 컨테이너에 접속해서 명령어를 입력할 수도 있고, apt-get 이나 yum으로 패키지를 각각에 설치도 가능. 사용자를 추가하고 여러개의 프로세스를 백그라운드로 실행할 수도 있다.
+* CPU나 메모리 사용량을 제한할 수도 있고, 호스트의 특정 포트와 연결하거나 호스트의 특정 디렉토리를 내부
+디렉토리 인 것처럼 사용할 수도 있다. 
+_________________
+![](https://subicura.com/assets/article_images/2017-01-19-docker-guide-for-beginners-1/docker-image.png)
+도커에서 가장 중요한 개념은 이미지라는 개념이다.
+<b>이미지는 컨테이너 실행에 필요한 파일과 설정값 등을 포함하고 있는 것.</b> 
+상태값을 가지지 않고 변하지 않는다. (Immutable). 
+같은 이미지로 여러개의 컨테이너를 독립적으로 실행시킬 수 있고, 컨테이너 상태가 변해도 이미지는 immutable. 안 변 해. 
+![](https://subicura.com/assets/article_images/2017-01-19-docker-guide-for-beginners-1/image-layer.png)
+
+도커 이미지는 컨테이너를 실행하기 위한 모든 정보를 가지고 있는데, 용량이 수백메가겠지. 
+그런데 이미지 위의 파일 하나 수정하는데 수백메가 짜리를 다시 다운받는다면 비효율적.
+<b> Layer </b> 라는 개념이 등장하였다. 여러 레이어를 유니온 파일 시스템을 이용해서 하나의 File System으로 사용할 수 있게 해준다. 
 
 ## 2020-07-20 first day in lab
 
