@@ -18,3 +18,9 @@ kubectl get nodes
 ```
 가 있는데. 
 이러면 일단, 
+
+<https://zerobig-k8s.tistory.com/10> 를 통해 proxy server 와 클러스터의 관계를 좀 파악할 수 있을 것이다.
+이는 <https://kubernetes.io/docs/tutorials/kubernetes-basics/deploy-app/deploy-interactive/> 의 내용이 기반이다.
+
+![HPA mechanism](https://user-images.githubusercontent.com/47310668/88129685-abfab280-cc13-11ea-8e64-5d516600dcf6.png)
+
