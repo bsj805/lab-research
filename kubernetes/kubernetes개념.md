@@ -1,6 +1,70 @@
 
 # Kubernetes basic
 
+## 2020-07-22 today I learned
+#### mechanism flow
+_______
+![HPA mechanism](https://user-images.githubusercontent.com/47310668/88129685-abfab280-cc13-11ea-8e64-5d516600dcf6.png)
+
+오늘은 개괄적인 명령어, 쿠버네티스 개념정리를 마칠 것이다. 
+##### 궁금증
+* kubectl describe service를 하면이 여러 ip 가 나온다. 
+tutorial을 진행하다보니 그 ip를 쓰는 것이 아닌 minikube ip 라는 것을 사용.
+물론 거기 나오는 node ip를 쓰기도 하는데, 그 node ip는 사용하면 node port가 아닌 내부 포트번호를
+써야지만 접속이 가능해진다. 이 서비스를 구성할 때 node port 옵션으로 구성했는데
+아마 클러스터의 ip가 minikube ip와 같다고 생각한다. 그래서 클러스터에 access하면서 서비스의 load balancing을 거치는 것이었다 라고 생각이 든다. 
+하지만 여전히 Node IP : Node Port로 access가 안되는 것에서는 의문이 든다.
+NODE IP : NODE PORT로 접속했을 때 load balancing을 통하여 또는 NAT기법을 같이 사용하면서 각 pods에 
+명령이 연결되도록 한 줄 알았는데 그게 아니었던 것이다.
+POD들이 쓰는 8080 port로만 연결이 가능했던 것이다. NODE IP : PODS PORT.
+이 구조가 궁금하다. 
+________
+
+#### kubectl 설치
+
+```bash
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+```
+로 다운받고,
+```bash
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+kubectl version --client
+```
+자 이제 클러스터를 구성해야 한다.
+minikube를 통해서 클러스터를 구성한다고 하여, 
+<https://kubernetes.io/ko/docs/setup/learning-environment/minikube/>
+<https://kubernetes.io/ko/docs/tasks/tools/install-minikube/> 이걸로 설치하고 위의 링크를
+따른다.
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+  && chmod +x minikube
+를 입력하고
+minikube start 를 쳤다.
+다만 sudo apt install qemu 를 해서 hypervisor를 하나 설치해 놓았다.
+![kube install](https://user-images.githubusercontent.com/47310668/88148158-2be74380-cc39-11ea-9c24-cbdaebd4a2b1.png)
+
+간단한 HTTP 서버인 echoserver 이미지를 사용해서 쿠버네티스 디플로이먼트를 만들고 --port를 이용해서 8080 포트로 노출해보자.
+
+kubectl create deployment hello-minikube --image=k8s.gcr.io/echoserver:1.10
+
+deployment.apps/hello-minikube created 와 같이 생성이 되었다.
+![kube install2](https://user-images.githubusercontent.com/47310668/88148643-deb7a180-cc39-11ea-8d97-566839257ab7.png)
+```bash
+비스 상세를 보기 위해서 노출된 서비스의 URL을 얻는다.
+
+minikube service hello-minikube --url
+```
+이렇게 minikube start를 통해서 kubernetes cluster를 구성할 수 있다. 
+이는 단일 노드 쿠버네티스 클러스터를 구동하는 가상 머신을 생성하고 구성한다. 
+
+https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
+오늘은 이내용으로 정리를해본다.
+내일은 나머지 예제들과 
+<https://github.com/kubernetes/examples/tree/master/>
+여기있는 example들과, 
+<https://zerobig-k8s.tistory.com/16?category=297761> 이 블로그글을 병행해가며 익혀나간다.
+
+일단 minikube 로 클러스터 (마스터와 노드를 구성하는 것) 이 맞는지 먼저 해결해야 할 것 같다.
 ## 2020-07-21 today I learned
 
 쿠버네티스 구성: 노드와 컨트롤 플레인으로 구성.
