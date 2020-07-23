@@ -1,5 +1,308 @@
 
 # Kubernetes basic
+## 2020-07-23 today I learned
+<https://kubernetes.io/docs/concepts/architecture/nodes/>
+#### 2 main ways to have Nodes added to the API server
+1. kubelet on a node self-registers to the control plane.
+2. human manually add a Node object
+
+내가 Node object를 만들거나, kubelet on a node가 self-register 하면 ,control plane (master node쪽) 에서 
+checks whether the new Node object is valid. 
+```JSON
+{
+  "kind": "Node",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "10.240.79.157",
+    "labels": {
+      "name": "my-first-k8s-node"
+    }
+  }
+}
+```
+과 같이 만들었을 때, kubernetes는 node object를 internally 만들고, checks that a kubelet has
+registered to the API server that matches the <b>metadata.name</b> field. 
+만약 노드가 all necessary services가 running 중인 healthy node 라면, pod를 실행시킬 수 있다.
+
+Cluster autoscaling.
+<https://kubernetes.io/docs/tasks/administer-cluster/cluster-management/#cluster-autoscaling>
+새 노드를 추가해서 현재 schedule 되어야 하는 pod들이 들어갈 수 있을지 판별하는
+cluster auto scaler. 클러스터의 크기를 줄이기도 해. 
+_________________
+#### guestbook 만들기
+<https://kubernetes.io/docs/tutorials/stateless-application/guestbook>
+
+minikube없이도 클러스터를 구성하고 (노드를 생성하는 yaml 파일을 통해서) 
+
+-만약 minikube를 이용한다면 ( service 종류가 nodeport** 밖에 안되는데, )
+-나는 loadbalancer** 타입으로 해보았다.( 하지만 클러스터를 미니큐베로 구성했다는 것..이었다) 
+<https://bcho.tistory.com/1308> 는 미니큐베에서 로드밸런서 타입을 테스트하는 것이다. 
+만약 nodeport** 이라면 minikube service frontend --url 을 통해서 frontend service (frontend 가 서비스이름) 에 대한 ip주소:port번호 를 얻어오는 것 같다.
+만약 load balancer 타입으로 frontend service를 만들었다면, 
+
+```bash
+kubectl get service frontend 
+```
+커맨드로 ip address를 얻어올 수있는데 ( 사실 get service랑 동일한거)  
+나는 minikube를 통한 클러스터 구성을 했기 때문에, 위의 것에 따라서 해야한다.
+______________________
+<https://bcho.tistory.com/1255?category=731548>
+#### 쿠버네티스 개념설명
+
+왜 그냥 컨테이너 배포 하지 왜 컨테이너 운영환경이 필요한가?
+수동으로 컨테이너를 배포할 때, 서버 수 ( 우리에게는 node의 수) 가 작으면 몰라도
+서버가 몇십개 된다고 하면 일일이 여긴 CPU가 몇개니까 몇개 배포 이런게 힘들다.
+-쿠버네티스 장점** 자원을 최적으로 사용하기 위한 컨테이너 분배 : (컨테이너를 적절한 서버에 배포하는게 스케줄링)
+
+쿠버네티스 약자로 k8s 라고 한다. 
+보통 VM을 올리고 그 위에 쿠버네티스를 배포하는 구조를 갖는데, 자원을 더 용이하게 사용하기 위해서라도 
+이 VM이 필요하다는 것이다.
+
+* Volume
+pod가 기동할 때 컨테이너마다 로컬 디스크가 생성되잖아. 즉 로컬 디스크에 뭔가 저장될 때마다 
+디스크의 기록이 사라지는데, DB같은 것은 파일을 영구저장해야 해. 이런 스토리지는 Volume** 이라고 하고
+Pod가 기동할 때 컨테이너에 마운트가 되어 사용됨. 
+이것도 따로 정의해야 사용된다. 이걸 어디에 마운트 해라 라고 하겠지.
+
+* Service
+Pod와 볼륨을 이용해서 컨테이너를 정의하고 pod를 서비스로 제공하면, 
+한 pod으로 서비스를 제공하기 보다는 여러개의 pod를 서비스하면서 로드밸런서로 하나의 IP와 포트로 묶어서
+서비스를 제공한다.
+POD는 동적으로 생성되고, 장애가 생기면 자동으로 리스타트 되면서 IP가 바뀐다. 
+따라서 로드 밸런서에서 pod의 목록을 지정할 때 IP주소를 이용하면 이상한 데에 access할 수도 있고
+
+오토 스케일링으로 pod가 동적으로 추가/삭제 되니까 로드밸런서가 현재 running하는 pod를 잘 픽해줘야한다.
+따라서 label** 과 label selector** 가 필요한 것이다.
+서비스를 yaml로 정의할 때 어떤 pod를 서비스로 묶을지 정의하는데 이를 라벨 셀렉터라고 한다. 
+각 pod를 생성할 때 메타데이타 정보 부분에 라벨을 정의하고
+서비스는 라벨 셀렉터에서 특정 라벨을 가지는 pod만 선태개서 서비스에 묶게 되는 것이다.
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: myapp
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9376
+
+
+
+리소스 종류가 Service 이기 때문에, kind는 Service로 지정하고,
+
+스크립트를 실행할 api 버전은 v1으로 apiVersion에 정의했다.
+
+메타데이타에 서비스의 이름을 my-service로 지정하고
+
+spec 부분에 서비스에 대한 스펙을 정의한다.
+
+selector에서 라벨이 app:myapp인 Pod 만을 선택해서 서비스에서 서비스를 제공하게 하고
+
+포트는 TCP를 이용하되, 서비스는 80 포트로 서비스를 하되, 서비스의 80 포트의 요청을 컨테이너의 9376 포트로 연결해서 서비스를 제공한다. 
+
+
+
+출처: https://bcho.tistory.com/1256?category=731548 [조대협의 블로그]
+
+보면 selector에서 app:myapp 을 한순간 같은 라벨이 metadata.label 에 정의 되어있는 pod들을 선택해서
+가져가게 되는 것이다. 
+포트는 TCP로 쓰되, 서비스는 80번 포트로 서비스 된다. 서비스의 80 포트의 요청은
+각 컨테이너의 9376 포트로 연결해서 서비스를 제공하겠다는 이야기이다.
+
+* Name space
+네임스페이스는 한 클러스터 안에서 분리를 할 때 쓰인다.
+즉 pod와 service가 각 네임스페이스 별로 생성, 관리가 될 수 있고 사용자의 권한도 네임스페이스 단위로
+부여할 수 있다.
+한 클러스터에 , 개발/운영/테스트 환경이 있을때 클러스터 하나를 세개로 나눠서 관리하는 것이다.
+** 각 네임스페이스별로 리소스의 quota( 할당량)을 지정할 수 있다.** 
+다른 네임스페이간의 pod라도 통신은 가능하다. 물리적으로는 붙어있으니까~
+물론 네트워크 policy를 통해서 차단은 가능하다.
+
+참고 자료 네임 스페이스에 대한 베스트 프랙틱스 : https://cloudplatform.googleblog.com/2018/04/Kubernetes-best-practices-Organizing-with-Namespaces.html
+
+https://kubernetes.io/blog/2016/08/kubernetes-namespaces-use-cases-insights/
+
+* 라벨 (label)
+쿠버네티스의 리소스를 선택하느데 사용이 된다. 특정 리소스만 deploy 하거나 update하거나 service에 연결하거나.
+아니면 특정 라벨로 선택된 리소스에만 네트워크 접근 권한 부여도 가능.
+label은 metadata 섹션에서 key: value 값으로 지정, 여러 라벨을 가질 수 있다.
+
+selector** 는 label selector를 지칭한다. 오브젝트 스펙에서 selector라고 정의하고 라벨 조건을 적어놓으면,
+그 리소스만 선택할 수 있는 것ㅇ디ㅏ.
+ Equaility based selector와, Set based selector 가 있다.
+
+Equality based selector는 같냐, 다르냐와 같은 조건을 이용하여, 리소스를 선택하는 방법으로
+
+- environment = dev
+
+- tier != frontend
+
+이처럼 같은지 다른지 조건에 따라서 리소스를 선택한다.
+이보다 improved 된 selector 방식은 set based selector. 집합 개념을 사용한다.
+- environment in (production,qa) 라고 하면, environment가 production이나 qa인 경우이고,
+- tier notin (frontend,backend) 라면 environment가 frontend 도 아니고 backend도 아닌 리소스를 선택하는 것.
+
+다음 예제는 my-service 라는 이름의 서비스를 정의한것으로 셀렉터에서 app: myapp 정의해서 Pod의 라벨 app이 myapp 것만 골라서 이 서비스에 바인딩해서 9376 포트로 서비스 하는 예제이다.
+
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: myapp
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9376
+
+보면 spec 부분에서 selector을 넣어주는 것을 볼 수 있다.
+맨 아래 타겟 포트는 외부에서 IP:80 으로 들어온 정보를 다 해당컨테이너의 9376포트로 포워딩시키는 것.
+
+이런 4개의 기본 오브젝트로 어플리케이션을 설정하고 배포하는 것이 가능한데, 
+kubernetes controller 로 쉽게 관리한다. 
+컨트롤러는 기본 오브젝트 생성과 관리하는 역할.
+_______________________________________________
+##### controller. 컨트롤러. ( replication controller(RC), replication set(rs), DaemonSet,Job,StatefulSet, Deployment) 
+
+* replication controller 
+ pod를 관리하는 역할을 한다. 이는 크게 3개의 파트. 
+ 1.Replica의 수, 2. Pod Selector , 3. Pod Template
+ 1. Replica 수: RC에 의해서 관리되는 POD의 수인데, 그 숫자만큼 pod의 수를 유지하도록 한다.
+ 이 replica 수가 3이면, 3개의 pod만 띄우고, 이보다 pod가 모자라면, 새 pod를 띄우고, 이보다 많으면 남는 pod를 삭제한다.
+ 2.Pod Selector: 라벨을 기반으로 하여 RC가 관리한 pod를 가지고오는데 사용
+ 3. Pod template pod를 추가로 생성해야 할 때 어떻게 pod를 만들지, pod에 대한 정보 ( 도커 이미지, 포트, 라벨) 에 대한
+ 정보가 필요한데 이를 pod template에서 정의한다.
+
+이미 running 중인 pod가 있는데 RC 리소스를 생성하면, pod의 라벨이 RC의 라벨과 일치하면 새롭게 생성된
+RC의 컨트롤을 받는다. RC에 정의되어있는 replica 수보다 pod 개수가 많으면 pod를 삭제하고 모자르면 
+template 정보에 따라 pod를 생성하느데, 기존에 생성된 pod가 template의 spec과 다르더라도
+pod를 삭제하진 않는다. 
+
+* ReplicaSet
+RS는 Replication Controller의 새 버전이다. 
+Replica set은 Set 기반의 selector을 사용하고 RC는 equality 기반 Selector를 이용할 뿐.
+
+*Deployment.
+ 위 RS나 RC보다 상위의 추상화 개념이다. 실제로는 RS나 RC를 바로 쓰기보단 DEPLOYMENT로 해결한다.
+ ###### 쿠버네티스에서의 deployment
+ deployment는 pod 배포를 위해서 RC를 생성하고 관리하는 역할을 한다. 
+![Deployment](https://t1.daumcdn.net/cfile/tistory/996368425B02D9C734)
+
+사실 RC, RS,Deployment는 일반적인 웹서버같은 워크로드에 대해 Pod를 관리하기 위한 controller이다.
+
+데이터베이스, 배치 작업, 데몬 서버와 같이 다양한 형태의 워크로드 모델이 존재하는데, 
+pod의 운영을 다양한 시나리오에 맞게 할 수 있다. 
+___________
+Job
+워크로드 모델중에서 배치나 한번 실행되고 끝나는 형태의 작업이 있을 수 있다.
+
+예를 들어 원타임으로 파일 변환 작업을 하거나, 또는 주기적으로 ETL 배치 작업을 하는 경우에는 웹서버 처럼 계속 Pod가 떠 있을 필요없이 작업을 할때만 Pod 를 띄우면 된다. 
+
+이러한 형태의 워크로드 모델을 지원하는 컨트롤러를 Job이라고 한다.
+
+job에 의해 관리되는 pod는 job이 끝날때 pod를 같이 종료한다. 
+배치 작업의 경우 작업을 한번만 실행할 수 도 있지만, 같은 작업을 연속해서 여러번 수행하는 경우가 있다. (데이타가 클 경우 범위를 나눠서 작업하는 경우) 이런 경우를 위해서 Job 컨트롤러는 같은 Pod를 순차적으로, 여러번 실행할 수 있도록 설정이 가능하다. Job 설정에서 completion에 횟수를 주면, 같은 작업을 completion 횟수만큼 순차적으로 반복한다
+즉 pod를 다시 생성하는 데에 대한 불이익은 거의 없을지도 모른다. 
+parallelism을 가능케 할 수도 있다.
+
+출처: https://bcho.tistory.com/1257?category=731548 [조대협의 블로그]
+ClusterIP
+디폴트 설정으로, 서비스에 클러스터 IP (내부 IP)를 할당한다. 쿠버네티스 클러스터 내에서는 이 서비스에 접근이 가능하지만, 클러스터 외부에서는 외부 IP 를 할당  받지 못했기 때문에, 접근이 불가능하다.
+NodePort
+클러스터 IP로만 접근이 가능한것이 아니라, 모든 노드의 IP와 포트를 통해서도 접근이 가능하게 된다. 예를 들어 아래와 같이 hello-node-svc 라는 서비스를 NodePort 타입으로 선언을 하고, nodePort를 30036으로 설정하면, 아래 설정에 따라 클러스터 IP의  80포트로도 접근이 가능하지만, 모든 노드의 30036 포트로도 서비스를 접근할 수 있다. 
+<img width="392" alt="99ACBB4F5B288E161A" src="https://user-images.githubusercontent.com/47310668/88256228-a8d7f300-ccf5-11ea-8013-ca28f8cf34e4.png">
+
+Load Balancer
+보통 클라우드 벤더에서 제공하는 설정 방식으로, 외부 IP 를 가지고 있는 로드밸런서를 할당한다. 외부 IP를 가지고 있기  때문에, 클러스터 외부에서 접근이 가능하다. 
+
+
+
+##### 마스터와 노드.
+<https://bcho.tistory.com/1256?category=731548>
+한 클러스터에 마스터가 있고 노드들이 있다. 클러스터를 관리하는 컨트롤러가 마스터이며, 컨테이너가 배포되는
+머신인 노드가 존재한다.
+
+기본 구성단위가 되는 basic object** 들이 있고, 이 기본 오브젝트를 생성하고 관리하는 컨트롤러로 이루어진다.
+우리가 yaml 파일에서 보았던 object spec은 
+오브젝트의 특성을 기술한 것이다. 설정정보.
+
+기본 오브젝트는 pod, service, volume, namespace.
+각각 컨테이너화 된 어플리케이션, 로드밸런서, 디스크, 패키지명 정도로 생각할 수 있다.
+
+apiVersion: v1
+
+kind: Pod
+
+metadata:
+
+  name: nginx
+
+spec:
+
+  containers:
+
+  - name: nginx
+
+    image: nginx:1.7.9
+
+    ports:
+
+    - containerPort: 8090
+
+
+
+apiVersion은 이 스크립트를 실행하기 위한 쿠버네티스 API 버전이다 보통 v1을 사용한다.
+
+kind 에는 리소스의 종류를 정의하는데, Pod를 정의하려고 하기 때문에, Pod라고 넣는다.
+
+metadata에는 이 리소스의 각종 메타 데이타를 넣는데, 라벨(뒤에서 설명할)이나 리소스의 이름등 각종 메타데이타를 넣는다
+
+spec 부분에 리소스에 대한 상세한 스펙을 정의한다.
+
+Pod는 컨테이너를 가지고 있기 때문에, container 를 정의한다. 이름은 nginx로 하고 도커 이미지 nginx:1.7.9 를 사용하고, 컨테이너 포트 8090을 오픈한다.
+
+
+
+출처: https://bcho.tistory.com/1256?category=731548 [조대협의 블로그]
+
+왜 컨테이너를 pod 단위로 배포하게 될까?
+pod 내의 컨테이너는 IP와 port를 공유해. 두 개의 컨테이너가 하나의 pod를 통해서 배포되었을 때,
+localhost를 통해서 통신이 가능하다. 아하. 그러니까 컨테이너 A가 8080, 컨테이너 B가 7001로 deployment가
+이루어졌을 때, A는 B에 대해서 localhost:7071로 호출가능하고, B는 A를 localhost:8080으로 호출할 수 있다.
+같은 pod 의 컨테이너 사이에는 디스크 볼륨을 공유할 수 있다.
+즉 다른 컨테이너에 있는 파일을 읽어올 수 있는 것이다.
+
+
+###### 현재상황
+나는 마스터노드로 설정할 서버를 가지고 있고
+현재 white (맨 왼쪽) black( 그다음왼쪽) 이 각각 worker 과 master로 구성되어있다.
+worker노드는 설정이 되어있는데
+내가 가진 master 노드 ( 서버) 는 설정이 안되어 있으니 그거 설정을 해야 한다.
+다만 ifconfig를 해보면 , docker0 이라는 interface가 보일텐데
+만약 docker 의 컨테이너가 IP를 받는다면 도커로부터 ip를 할당받을 텐데
+그러면 같은 ip를 가지고 있는 컨테이너 사이의 통신이 원활할까? 는 거의 아닐것이다.
+broadcast를 했을때 목적지가 자신인 패킷이 보내질 수 도 있는 것이다.
+NAT가 필요한 상황처럼 보면된다.
+
+쿠버네티스는 CNI를 쓰라고 해서 그 CNI중 하나인 flannel 을 통해서
+NAT같은 역할을 하게 해준다.
+이를테면 Flannel에서 각 컨테이너에 IP를 할당 해주고, flannel IP를 가진 패킷이
+나간다면, flannel 이 먼저 udp header을 추가로 씌워주고, 플라넬이 점검을 한번 하게 한다.
+flannel 을 통하면 각각 다른 IP를 가진 것이 확정적이므로 flannel을 통해서 정보를 전송할 수 있게 된다.
+
+이제 내 목표는 master 서버를 다 설정하고
+worker 노드를 내 클러스터 (내 master 서버와 같은 클러스터) 에 집어넣는것!
+kubectl join 이런거>
+
+아참, 플라넬은 docker 아래 kubernetes 아래에 위치한다. 그 밑에 노드가 있는 셈.
+따라서 원래는 docker0 라는 interface가 내 노드의 interface와 연결되어서 
+단순 포워딩으로 정보를 전송했다. 
+
 
 ## 2020-07-22 today I learned
 #### mechanism flow
