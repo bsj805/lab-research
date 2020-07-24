@@ -1,5 +1,39 @@
 
 # Kubernetes basic
+
+## 2020-07-26 to do list,
+
+*client서버 접속할 수 있게 xshell 설정
+*클러스터 구성 후, nginx 이용한 웹서버 구성
+*HPA 적용방법 조사
+* HPA 적용시에 pod의 개수 측정방법 or 어떻게 workload를 줄 지 조사.
+
+## 2020-07-24 today I learned
+
+일단 도커랑 kubernetes를 밀어버리고 다시 설치하려는데
+ubuntu18.0.4 LTS 버전에서는
+docker.io : Depends: containered 오류가 뜬다.
+
+버전 업그레이드를 하거나 다른방법으로 패키지를 받거나 해야하는데
+일단 다른 서버들도 다 버전이 20.0.4 ? 라고 하여 업데이트를 진행한 뒤 마저 설치를 하고자 한다.
+
+apt -get install update-manager-core 
+
+do-release-upgrade -d 를 하면 우분투 릴리스가 새로나왔는지 체크한다고한다
+근데 또 * no development version of an LTS available* 이라고 하여 그냥
+패키지자체를 다운받는걸로 했다.
+아래 링크에서 참조하였다.
+https://askubuntu.com/questions/1180060/getting-error-while-installing-docker-docker-ce-depends-containerd-io-1
+
+<https://hiseon.me/linux/ubuntu/install-docker/>
+
+setup의 자세한 이야기( <https://medium.com/finda-tech/overview-8d169b2a54ff> ) 
+
+일단 이제 클러스터를 kubeadm init으로 구성했으니까 , 저 클라이언트 서버에 ssh접속할 방법을 알아내서
+xshell 세팅을 하고 내 마스터 키 값( local 폴더에 저장되어있음 (내문서-klab) ) 으로 join시킨다.
+
+
+
 ## 2020-07-23 today I learned
 <https://kubernetes.io/docs/concepts/architecture/nodes/>
 #### 2 main ways to have Nodes added to the API server
