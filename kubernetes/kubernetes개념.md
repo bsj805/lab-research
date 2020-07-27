@@ -6,7 +6,23 @@
 *client서버 접속할 수 있게 xshell 설정
 *클러스터 구성 후, nginx 이용한 웹서버 구성
 *HPA 적용방법 조사
-* HPA 적용시에 pod의 개수 측정방법 or 어떻게 workload를 줄 지 조사.
+* HPA 적용시에 pod의 개수 측정방법 or 어떻게 workload를 줄 지 조사
+
+현재 ssh로 접속불가능한 문제가 있어서 다시 깔 예정.
+
+우선 
+sudo apt-get install docker 했는데, 
+The following packages have unmet dependencies:
+ docker.io :
+ 문제. 
+sudo apt-get remove containerd.io
+이걸로 해결가능 
+https://bugs.launchpad.net/ubuntu/+source/docker.io/+bug/1830237
+
+ssh가 안되는 문제가 있었는데,
+그건 ssh를 sudo apt purge ssh-client 하니까 ssh 관련프로그램이 다 날라가면서 다시 접속가능해졌다.
+또한 이걸 지울 때 docker 파일들이 같이날라가는 것을 보았는데, 어쩌면 docker의 설치가 
+ssh에 연관이 생겨서 서로에게 영향을 준 것일지도 모르겠다.
 
 ## 2020-07-24 today I learned
 
