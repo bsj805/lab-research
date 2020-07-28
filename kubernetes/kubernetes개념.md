@@ -1,7 +1,16 @@
 
 # Kubernetes basic
+## 2020-07-28 today I learned
 
-## 2020-07-26 to do list,
+*아직 클러스터 구성중
+```bash
+kubectl get node 
+```
+마스터 노드는 이미 등록되어 있고, 이제 클라이언트 노드를 체크해보자. 
+kubeadm join 192.168.0.17:6443 --token oa782j.si1q33qc8ao0hmkt \                                                  --discovery-token-ca-cert-hash sha256:1f64b7fd2b51f8ee471df1e985f830f77d5c937a793749cefcb598884d879ba6  
+이거 입력하면 내 클러스터에 join시킬 수 있는데.
+
+## 2020-07-27 to do list, TIL
 
 *client서버 접속할 수 있게 xshell 설정
 *클러스터 구성 후, nginx 이용한 웹서버 구성
@@ -23,6 +32,7 @@ ssh가 안되는 문제가 있었는데,
 그건 ssh를 sudo apt purge ssh-client 하니까 ssh 관련프로그램이 다 날라가면서 다시 접속가능해졌다.
 또한 이걸 지울 때 docker 파일들이 같이날라가는 것을 보았는데, 어쩌면 docker의 설치가 
 ssh에 연관이 생겨서 서로에게 영향을 준 것일지도 모르겠다.
+일단 지울 때 에러메세지는 같은폴더의 errormess.txt를 참고하도록. 
 
 ## 2020-07-24 today I learned
 
@@ -48,7 +58,7 @@ setup의 자세한 이야기( <https://medium.com/finda-tech/overview-8d169b2a54
 일단 이제 클러스터를 kubeadm init으로 구성했으니까 , 저 클라이언트 서버에 ssh접속할 방법을 알아내서
 xshell 세팅을 하고 내 마스터 키 값( local 폴더에 저장되어있음 (내문서-klab) ) 으로 join시킨다.
 
-
+kubectl -apply flannel.yml 이 안되는 문제가 있었는데 ,sudo 안붙이니까 됨.
 
 ## 2020-07-23 today I learned
 <https://kubernetes.io/docs/concepts/architecture/nodes/>
