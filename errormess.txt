@@ -1,0 +1,143 @@
+byeon@kubernetes-master:~$ sudo apt purge openssh-client
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libcbor0.6 libfido2-1 ncurses-term
+Use 'sudo apt autoremove' to remove them.
+0 upgraded, 0 newly installed, 5 to remove and 0 not upgraded.
+After this operation, 126 MB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 188909 files and directories currently installed.)
+Stopping snap.docker.dockerd.service
+Stopping unit snap.docker.dockerd.service
+Waiting until unit snap.docker.dockerd.service is stopped [attempt 1]
+snap.docker.dockerd.service is stopped.
+Waiting until unit snap.kubelet.daemon.service is stopped [attempt 1]
+snap.kubelet.daemon.service is stopped.
+Removing openssh-sftp-server (1:8.2p1-4ubuntu0.1) ...
+Removing ssh-import-id (5.10-0ubuntu1) ...
+Processing triggers for gnome-menus (3.36.0-1ubuntu1) ...
+Processing triggers for man-db (2.9.1-1) ...
+Processing triggers for desktop-file-utils (0.24-1ubuntu3) ...
+(Reading database ... 188751 files and directories currently installed.)
+Stopping unit snap.docker.dockerd.service
+Waiting until unit snap.docker.dockerd.service is stopped [attempt 1]
+snap.docker.dockerd.service is stopped.
+Removing snap.docker.dockerd.service
+Waiting until unit snap.kubelet.daemon.service is stopped [attempt 1]
+snap.kubelet.daemon.service is stopped.
+Removing snap.kubelet.daemon.service
+Stopping snap-core-9436.mount
+snap-core-9436.mount is stopped.
+Removing snap core and revision 9436
+Removing snap-core-9436.mount
+Stopping snap-core-9665.mount
+snap-core-9665.mount is stopped.
+Removing snap core and revision 9665
+Removing snap-core-9665.mount
+Stopping snap-core18-1754.mount
+snap-core18-1754.mount is stopped.
+Removing snap core18 and revision 1754
+Removing snap-core18-1754.mount
+Stopping snap-core18-1880.mount
+snap-core18-1880.mount is stopped.
+
+Removing snap core18 and revision 1880
+Removing snap-core18-1880.mount
+Stopping snap-docker-471.mount
+snap-docker-471.mount is stopped.
+Removing snap docker and revision 471
+Removing snap-docker-471.mount
+Stopping snap-gnome\x2d3\x2d26\x2d1604-100.mount
+snap-gnome\x2d3\x2d26\x2d1604-100.mount is stopped.
+Removing snap gnome-3-26-1604 and revision 100
+Removing snap-gnome\x2d3\x2d26\x2d1604-100.mount
+Stopping snap-gnome\x2d3\x2d26\x2d1604-98.mount
+snap-gnome\x2d3\x2d26\x2d1604-98.mount is stopped.
+Removing snap gnome-3-26-1604 and revision 98
+Removing snap-gnome\x2d3\x2d26\x2d1604-98.mount
+Stopping snap-gnome\x2d3\x2d28\x2d1804-116.mount
+snap-gnome\x2d3\x2d28\x2d1804-116.mount is stopped.
+Removing snap gnome-3-28-1804 and revision 116
+Removing snap-gnome\x2d3\x2d28\x2d1804-116.mount
+Stopping snap-gnome\x2d3\x2d28\x2d1804-128.mount
+snap-gnome\x2d3\x2d28\x2d1804-128.mount is stopped.
+Removing snap gnome-3-28-1804 and revision 128
+Removing snap-gnome\x2d3\x2d28\x2d1804-128.mount
+Stopping snap-gnome\x2d3\x2d34\x2d1804-33.mount
+snap-gnome\x2d3\x2d34\x2d1804-33.mount is stopped.
+Removing snap gnome-3-34-1804 and revision 33
+Removing snap-gnome\x2d3\x2d34\x2d1804-33.mount
+Stopping snap-gnome\x2d3\x2d34\x2d1804-36.mount
+snap-gnome\x2d3\x2d34\x2d1804-36.mount is stopped.
+Removing snap gnome-3-34-1804 and revision 36
+Removing snap-gnome\x2d3\x2d34\x2d1804-36.mount
+Stopping snap-gnome\x2dsystem\x2dmonitor-145.mount
+snap-gnome\x2dsystem\x2dmonitor-145.mount is stopped.
+Removing snap gnome-system-monitor and revision 145
+Removing snap-gnome\x2dsystem\x2dmonitor-145.mount
+Stopping snap-gnome\x2dsystem\x2dmonitor-148.mount
+snap-gnome\x2dsystem\x2dmonitor-148.mount is stopped.
+Removing snap gnome-system-monitor and revision 148
+Removing snap-gnome\x2dsystem\x2dmonitor-148.mount
+Stopping snap-gtk\x2dcommon\x2dthemes-1502.mount
+Stopping unit snap-gtk\x2dcommon\x2dthemes-1502.mount
+Waiting until unit snap-gtk\x2dcommon\x2dthemes-1502.mount is stopped [attempt 1]
+snap-gtk\x2dcommon\x2dthemes-1502.mount is stopped.
+Removing snap gtk-common-themes and revision 1502
+Removing snap-gtk\x2dcommon\x2dthemes-1502.mount
+Stopping snap-gtk\x2dcommon\x2dthemes-1506.mount
+Stopping unit snap-gtk\x2dcommon\x2dthemes-1506.mount
+Waiting until unit snap-gtk\x2dcommon\x2dthemes-1506.mount is stopped [attempt 1]
+snap-gtk\x2dcommon\x2dthemes-1506.mount is stopped.
+Removing snap gtk-common-themes and revision 1506
+Removing snap-gtk\x2dcommon\x2dthemes-1506.mount
+Stopping snap-kubeadm-1589.mount
+snap-kubeadm-1589.mount is stopped.
+
+Stopping unit snap-kubeadm-1611.mount
+Waiting until unit snap-kubeadm-1611.mount is stopped [attempt 1]
+snap-kubeadm-1611.mount is stopped.
+Removing snap kubeadm and revision 1611
+Removing snap-kubeadm-1611.mount
+Stopping snap-kubectl-1559.mount
+Stopping unit snap-kubectl-1559.mount
+Waiting until unit snap-kubectl-1559.mount is stopped [attempt 1]
+snap-kubectl-1559.mount is stopped.
+Removing snap kubectl and revision 1559
+Removing snap-kubectl-1559.mount
+Stopping snap-kubectl-1580.mount
+snap-kubectl-1580.mount is stopped.
+Removing snap kubectl and revision 1580
+Removing snap-kubectl-1580.mount
+Stopping snap-kubelet-1538.mount
+Stopping unit snap-kubelet-1538.mount
+Waiting until unit snap-kubelet-1538.mount is stopped [attempt 1]
+Removing snap-kubelet-1538.mount
+Stopping snap-kubelet-1560.mount
+Removing snap kubelet and revision 1560
+Removing snap-kubelet-1560.mount
+Stopping snap-snap\x2dstore-467.mount
+Stopping unit snap-snap\x2dstore-467.mount
+Waiting until unit snap-snap\x2dstore-467.mount is stopped [attempt 1]
+snap-snap\x2dstore-467.mount is stopped.
+Removing snap snap-store and revision 467
+Removing snap-snap\x2dstore-467.mount
+Final directory cleanup
+Discarding preserved snap namespaces
+Removing extra snap-confine apparmor rules
+Removing snapd cache
+Removing snapd state
+Purging configuration files for openssh-server (1:8.2p1-4ubuntu0.1) ...
+Purging configuration files for openssh-client (1:8.2p1-4ubuntu0.1) ...
+Purging configuration files for ssh-import-id (5.10-0ubuntu1) ...
+Processing triggers for systemd (245.4-4ubuntu3.2) ...
+Processing triggers for ureadahead (0.100.0-21) ...
+ureadahead will be reprofiled on next reboot
+Processing triggers for ufw (0.36-6) ...
+WARN: /etc/default/ufw is world writable!
+WARN: /etc/default is world writable!
+WARN: /etc is world writable!
+WARN: /etc/ufw/ufw.conf is world writable!
+WARN: /etc/ufw is world writable!
+WARN: /etc/ufw/user6.rules is world writable!
+WARN: /etc/ufw/applications.d/cups is world writable!
