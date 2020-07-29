@@ -68,6 +68,9 @@ ssh가 안되는 문제가 있었는데,
 ssh에 연관이 생겨서 서로에게 영향을 준 것일지도 모르겠다.
 일단 지울 때 에러메세지는 같은폴더의 errormess.txt를 참고하도록. 
 
+<https://ubuntuforums.org/showthread.php?t=1145698> dhclient로 ssh 접속불가 해결
+dhcp설정을 건드리는듯함.
+
 ## 2020-07-24 today I learned
 
 일단 도커랑 kubernetes를 밀어버리고 다시 설치하려는데
