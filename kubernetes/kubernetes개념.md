@@ -9,6 +9,40 @@ kubectl get node
 마스터 노드는 이미 등록되어 있고, 이제 클라이언트 노드를 체크해보자. 
 kubeadm join 192.168.0.17:6443 --token oa782j.si1q33qc8ao0hmkt \                                                  --discovery-token-ca-cert-hash sha256:1f64b7fd2b51f8ee471df1e985f830f77d5c937a793749cefcb598884d879ba6  
 이거 입력하면 내 클러스터에 join시킬 수 있는데.
+현재는 kubectl 입력하면 the connection to the server localhost8080 was refused.
+
+이 토큰이 24시간만 유효하다는 말이 있네.
+
+kubeadm reset
+하고,
+kubeadm join 192.168.0.17:6443 --token t0zwfg.nemgefcego5a0wl8 \
+    --discovery-token-ca-cert-hash sha256:59d91bc7f7453ea26f409949cfcf70dbb89a142fc40bde8822fd2b3e2a75a44a
+    하자.
+
+kubectl로 커맨드 안먹히는경우
+```bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+chown으로 권한설정이 중요한듯.
+메트릭 서버는 resource사용량을 볼 수 있도록 한 것 같은데
+https://arisu1000.tistory.com/27856
+이것과 비슷하다. 
+<https://linux.systemv.pe.kr/metric-server-%EC%84%A4%EC%B9%98%ED%95%98%EA%B8%B0/>
+이걸 참고하도록.
+
+근데 메트릭서버가 실행되는지 보려고 kubectl get pods -n kube-system을 쳡니 메트릭서버가 실행되지 않는다. kubectl get deploy -n kube-system으로 확인해보니 metrics server에 배정가능한 replicaset이
+없어보인다.
+알고보니 
+<https://stackoverflow.com/questions/52876792/kubernetes-metrics-server-dont-start> 
+에서와 같이 더이상 schedule을 안하도록 하는 제한이 있었다. (taint)
+이는 클러스터의 워커노드가 존재하지 않아서 생기는 문제라고 한다. 하긴, 슬레이브들의 자원을 모니터 하려고 만드는 메트릭 서버를 
+마스터 하나있을 때에는 굳이 실행시킬 필요가 없던 것이다.
+
+<https://gruuuuu.github.io/cloud/monitoring-01hpa/#> 여기를 통해서 HPA실습을 해보면 될 것 같은데.
+<https://kubernetes.io/ko/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/> 이 내용을 기반으로 한 것이다.
+
 
 ## 2020-07-27 to do list, TIL
 
