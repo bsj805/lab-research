@@ -1,6 +1,25 @@
 
 # Kubernetes basic
-## 2020-07-28 today I learned
+## 2020-07-30 TIL
+
+현재 새로운 서버를 생성해서 2222port로 접속할 수 있다. 
+이게 한번에 join안되는 문제가 있었는데 6443 포트가 막혀있는게아닌가 하여
+https://fblens.com/entry/%EB%A6%AC%EB%88%85%EC%8A%A4-%ED%8F%AC%ED%8A%B8-%ED%99%95%EC%9D%B8
+를 따라서
+netstat -nat | grep 6443 했는데 방화벽이 안 열린것 같아 
+	
+iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
+
+
+
+위의 명령어는 tcp 프로토콜의 포트를 열어주는 명령어입니다.
+으로 열었다.
+따라서 kubectl get nodes하면 드디어 우리 클러스터 노드가 보인다 ^^
+
+
+이제 metric 서버를 열고, 자원사용량확인이되는지 확인해보고, 아래에 nginx tutorial을 진행해본다.
+
+## 2020-07-28, 2020-07-29 today I learned
 
 *아직 클러스터 구성중
 ```bash
