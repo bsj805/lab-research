@@ -31,6 +31,20 @@ hulkbuster쪽에서 4443 포트 6443, 443 포트를 다 방화벽에서 해제�
 delete 커맨드로 밀고서 0.3.6 yaml로 설치한 결과이다.
 key값은 메모장에 적혀있고, 
 
+##### php 예제 연습
+https://gruuuuu.github.io/cloud/monitoring-01hpa/
+https://kubernetes.io/ko/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+
+
+내 도커 id는 만들어야 해. bruzn 으로 만들었어. 내 도커 id가 bruzn
+vim Dockerfile로 docker 파일 명세서를 만들고,
+docker build --tag bruzn/php-apache .    <- 마침표를 찍어야 하더라..
+docker images 로 확인해보면 bruzn/php-apache 가 존재한다.
+
+yaml 파일을 작성하다가
+tab을 쓰면 안된 다는 것을 깨달았다. 그래서 tab을 다 지운줄 알았는데
+계속 같은 오류가 떠vim에 들어가서 / \t 로 tab character을 모두 찾아서 space로 대체해주었다.
+
 
 ## 2020-07-30 TIL
 
