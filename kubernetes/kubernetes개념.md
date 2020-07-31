@@ -1,5 +1,37 @@
 
 # Kubernetes basic
+## 2020-07-31 TIL
+
+여전히 metric server와 씨름중이다.
+/var/lib/kubelet/config.yaml에 kubeadm에 대해 설정한게 있다.anonymous에 대한 authentication을 true로 설정해주었다.
+이거는 처음 kubeadm init을 시킬 때에 api-server에 대해서 내 ip를 198.168.0.17로 지정해주어서 그런 것 같다.
+kubeadm init을 다시 해볼 필요성이 있는 것 같아서
+
+rm -rf /etc/cni/net.d
+rm -rf $HOME/.kube/config
+를 날리고
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 로 구성했다.
+kubelet environment file with flags in /var/lib/kubelet/kubeadm-flags.env
+
+config파일은 kubectl -n kube-system get cm kubeadm-config -oyaml 로 볼 수 있대. 
+
+마침내 성공! 
+
+~/metric/components.yaml 설정으로 되었다.
+        args:                                                                                        
+- --cert-dir=/tmp                                                                          
+- --secure-port=4443                                                                       
+- --kubelet-insecure-tls                                                                   
+- --kubelet-preferred-address-types=InternalIP 
+이제 kubectl top node가 된다.
+
+kubeadm init은 flannel만 설정하는 옵션으로 했고
+hulkbuster쪽에서 4443 포트 6443, 443 포트를 다 방화벽에서 해제했다.
+0.3.7버전의 components.yaml은 image pull이 안되는 문제가 있다고 한다.
+delete 커맨드로 밀고서 0.3.6 yaml로 설치한 결과이다.
+key값은 메모장에 적혀있고, 
+
+
 ## 2020-07-30 TIL
 
 현재 새로운 서버를 생성해서 2222port로 접속할 수 있다. 
@@ -59,6 +91,7 @@ https://github.com/kubernetes-sigs/metrics-server/blob/master/FAQ.md
 
 흠..
 Pod의 IP를 조회하는 방법은 -o wide 옵션을 추가한 kubectl get pods -o wide -A 명령어를 통해 가능하다.
+
 
 
 
