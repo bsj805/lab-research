@@ -10,7 +10,7 @@ netstat -nat | grep 6443 했는데 방화벽이 안 열린것 같아
 	
 iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
 
-
+wget으로 파일다운로드가 가능하구나.
 
 위의 명령어는 tcp 프로토콜의 포트를 열어주는 명령어입니다.
 으로 열었다.
@@ -18,6 +18,49 @@ iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
 
 
 이제 metric 서버를 열고, 자원사용량확인이되는지 확인해보고, 아래에 nginx tutorial을 진행해본다.
+
+metric 서버를 여는것은 
+
+kube-apiserver에 접속 못한다는 
+the server is currently unable to handle the request (get nodes.metrics.k8s.io)
+에러가 나면
+/etc/kubernetes/manifests/kube-apiserver.yaml
+에 https://github.com/kubernetes-sigs/metrics-server/issues/448
+
+대로 --enable-aggregator-routing = true 를 붙여준다.
+sudo로 안열면 아무것도 없는 것 처럼 보인다 (새파일처럼)
+
+metric server은 /home/byeon/metrics-server/manifests/base 에 yaml 파일이 있다.
+
+kubectl logs metrics-server-7df4c4484d-h75wr -n kube-system -c metrics-server
+
+https://stackoverflow.com/questions/52702416/kubernetes-kubectl-top-nodes-pods-not-working
+이걸 통해서 로그를 보니 포트가 막혀있어서 그런가 rnetes-master: Get "https://192.168.0.17:10250/stats/summary?only_cpu_and_memory=true": dial tcp 192.168.0.17:10250: i/o timeout
+E0730 05:23:56.619399       1 server.go:115] unable to fully scrape metrics: unable to fully scrape metrics from node kubernetes-master: unable to fetch metrics from node kubernetes-master: Get "https://192.168.0.17:10250/stats/summary?only_cpu_and_memory=true": dial tcp 192.168.0.17:10250: i/o timeout
+라고 한다. 
+
+/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+여기서 어떤 config파일이 적용되었는지 볼 수 있고,
+/etc/kubernetes/에 가면 대부분의 config파일이존재
+<https://lascrea.tistory.com/201> metric 서버가 어떻게 작용하는지에 대한 설명
+
+VPA 설명
+https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+
+HPA 설명
+https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+
+kubectl delete -f /metrics-server/deploy/1.8+
+kubectl apply -f /metrics-server/deploy/1.8+
+메트릭서버 지우기
+
+https://github.com/kubernetes-sigs/metrics-server/blob/master/FAQ.md
+일단 known issue 중에 kubeadm으로 만든 클러스터에 대한 내용이 있어서 따라해보자.
+
+흠..
+Pod의 IP를 조회하는 방법은 -o wide 옵션을 추가한 kubectl get pods -o wide -A 명령어를 통해 가능하다.
+
+
 
 ## 2020-07-28, 2020-07-29 today I learned
 
@@ -61,6 +104,7 @@ https://arisu1000.tistory.com/27856
 
 <https://gruuuuu.github.io/cloud/monitoring-01hpa/#> 여기를 통해서 HPA실습을 해보면 될 것 같은데.
 <https://kubernetes.io/ko/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/> 이 내용을 기반으로 한 것이다.
+
 
 
 ## 2020-07-27 to do list, TIL
