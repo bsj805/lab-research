@@ -45,7 +45,21 @@ yaml 파일을 작성하다가
 tab을 쓰면 안된 다는 것을 깨달았다. 그래서 tab을 다 지운줄 알았는데
 계속 같은 오류가 떠vim에 들어가서 / \t 로 tab character을 모두 찾아서 space로 대체해주었다.
 
+hpa를 만드는 yaml을 설정해주고 (autoscaler.yaml) 
+그리고 kubectl get hpa 를 하면 현재 시스템 부하 를 알 수 있어. 안에 내용은 yaml.에서 설정하고
 
+kubectl apply -f autoscaler.yaml
+로 적용했어. ~/kube/php/ 에서.
+
+그리고 php서버에 요청을 전송해야하는데,
+kubectl get service를 보면
+php-apache의 cluster-ip가 10.111.10.119로 되어있는것을 볼 수 있고
+포트가 80임을 볼 수 있어서
+http://10.111.10.119:80 으로 해보았다.
+요청이 보내진다!
+251%까지 뛰었고 replica가 4 6 ... 늘어났다.
+ctrl c로 취소하고
+replicaset은 target 0/50% 가 되었지만 여전히 6개였었다.
 ## 2020-07-30 TIL
 
 현재 새로운 서버를 생성해서 2222port로 접속할 수 있다. 
