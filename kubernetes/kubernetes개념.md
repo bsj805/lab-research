@@ -1,5 +1,80 @@
 
 # Kubernetes basic
+## 2020-08-03 TIL
+
+* Kubernetes Autoscaling
+<https://www.replex.io/blog/kubernetes-in-production-best-practices-for-cluster-autoscaler-hpa-and-vpa>
+kubernetes는 3가지 scalability tool이 있다. 그중 application abstraction layer에서 작동하는 건
+HPA와 VPA (우리가 보고 있는). 하나는 cluster autoscaler이고 infrastructure layer에서 작동한다.
+
+________________________________
+* Cluster autoscaler.
+ -it adds nodes to a cluster whenever it detects pending pods that could not be scheduled due to resource shortages.
+ ㄴ> 즉, 클러스터에 노드를 더해주는 거래 더 pod를 놓고 싶은데. 그게 없을 때
+ - removes the nodes from cluster , whenever the utilization of a node falls below a certain
+ threshold defined by the cluster administrator. 
+ 
+ pod disruption budgets 라는걸 설정해 두어서 kubernetes administrators가 critical pods를 disrupt(붕괴)시키는 것을 막고, 그 pods들이 항상 running중이도록 한다. system pods에게 disruption budgets를 설정 하는 것은, 얼마나 많은 REPLICASET을 default로 공급할지 정하는데 중요하다. kube-dns만 system pod 중에서 multiple replicaset을 run 해. 그래서 다른 system pod를 restarting하는 것은 클러스터의 disruption을 
+ 불러올수 있다.
+ 
+________
+* HorizontalPodAutoScaler 
+HPA는 REPLICATION CONTROLLER, DEPLOYMENT, REPLICA SET, STATEFUL SET 의 POD들의 개수를 CPU UTILIZATION에 기반해서 SCALE 한다. CUSTOM이나 EXTERNAL METRIC에 따라서 SCALING DECISION을 내리도록 CONFIGURE하기도 한다.
+
+SCALE UP도 되고 SCALE DOWN도 가능.
+
+- HPA는 SCALING DECISION을 BASED ON THE OBSERVED CPU UTILIZATION VALUES OF PODS THAT ARE PART OF A KUBERNETES CONTROLLER. 즉 KUBE CONTROLLER에서 CPU UTIL VALUE를 보고서는 scaling을 할지 말지 결정한다.
+만약 어떤 컨테이너에서 resource request value를 잃어버린다면, SUBOPTIMAL OPERATION (최적이지 않은 OPERATION을 행할 수도 있다.) 
+보통의 스케일링 decision은 external metric에 따라 결정된다. pod 와 ojbect metric이 지원된다.
+pod metric이란 것은 averaged across all pods and only support ~target~ type of ~AverageValue~. 
+Ojbect metric이란 것은, describe any other ojbect in the same namespace and support ~target~ types of both ~value~ and ~Averagevalue~.
+----
+metric server는 per pod resource metric을 metrics API로부터 받아온다. (metrics.k8s.io) 
+이 server의 API를 제공해주는 것이 metrics-server인 것. 보통 kube cluster에 cluster add on으로 metrics-server을 launch한다.  
+
+ --horizontal-pod-autoscaler-downscale-stabilization flag passed to the kube-controller-manager. This flag has a default value of 5 minutes and specifies the duration HPA waits after a downscale event before initiating another downscale operation.
+ 즉슨, thrashing 이 일어날 수 있기 때문에 그렇다.
+ By default the HPA tolerates a 10% change in the desired to actual metrics ratio before scaling. Depending on application requirements, this value can be changed by configuring the horizontal-pod-autoscaler-tolerance flag. Other configurable flags include --horizontal-pod-autoscaler-cpu-initialization-period duration,  horizontal-pod-autoscaler-initial-readiness-delay duration and horizontal-pod-autoscaler-sync-period duration. All of these can be configured based on unique cluster or application requirements. 
+ _______
+ VPA는 vertical pod scaler.
+ VPA는 automatically sets the resource request and limit values of containers based on usage. 
+ VPA aims to reduce the maintenance overhead of configuring resource requests and limits for containers and improve the utilization of cluster resources. 
+ 할 수 있는 일은
+ - reduce the request value for containers whose resource usage is consistently lower than the requested amount. ( 할당된 자원양보다 지속적으로 적게쓰는 컨테이너를 reduce the request value)
+ - increase request values for containers that consistently use a high percentage of resources requested ( 지속적으로 request된 자원의 사용량이 많은 container들의 request value를 increase)
+ 
+ - automatically set resource limit values based on limit to request ratios ( resource limit 대비 request의 양에 따라서 정한대)
+
+VPA는 Prometheus 와 metric- server 두개 모두에서 usage와 utilization metric을 필요로 한다. 
+VPA에선 recommender이라는 main component가 recommended resource를 계산하고, generate a recommendation model. running pods에 대해서는, recommender component가 real-time usage와 utilization metrics를 
+metric -server에서 metrics API로 받아오고, scaling decision을 내리게 된다. 
+
+*HPA와 다른점.
+VPA는 prometheus 를 require한다. VPA의 HISTORY STORAGE라는 component는 consumes utilization signals and OOM events and stores them persistently and is backed up by prometheus. 즉 저장 기능이네.
+처음시작할 때, recommender은 이 데이터를 history storage 로부터 얻어와서 memory에 keep한다.
+
+Prometheus를 내 cluster에 깔고  metrics를 cadvisor로부터 받도록 configure 해봐야 한다.
+metrics from cadvisor이 job=kubernetes-cadvisor라는 label을 갖는지 체크해라.
+
+또 VPA deploy 할때  set the --storage=prometheus and the --prometheus-address=<your-prometheus-address> flags 할 수 있도록 해라. 
+	
+	This is what the spec looks like:
+```
+spec:
+  containers:
+  - args:
+    - --v=4
+    - --storage=prometheus
+    - --prometheus-address=http://prometheus.default.svc.cluster.local:9090
+//Also make sure you update the --prometheus-address flag with the name of the actual namespace that Prometheus is running in.
+```
+	
+	
+	
+	
+	
+	
+
 ## 2020-07-31 TIL
 
 여전히 metric server와 씨름중이다.
@@ -704,7 +779,7 @@ _________________
  request를 받는 port 하나가 있고 각 thread마다 controller는 pod를 생성해서 response를 만들어 내도록 해놓았다.
  이말인 즉슨, 이 horizontal로 했을 때는 각 쓰레드마다 자원을 배분하는 방식으로 간다 이거다. 
  
- 지금 교수님께서 하고자 하시는 것은 virtical 한 방식이다.
+ 지금 교수님께서 하고자 하시는 것은 vertical 한 방식이다.
  기존에 HPA는 이와같이 필요한게 생기면 pod하나의 리소스를 늘리는 것이라기 보다는 여러 pod를 만들어서 
  각자 처리를 하고 결과물을 낼 수 있도록 함인데, 
  VPA는 pod 하나의 리소스를 늘려서 처리하는 방식이 될 것이다.
