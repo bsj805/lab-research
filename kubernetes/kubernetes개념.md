@@ -1,5 +1,29 @@
 
 # Kubernetes basic
+## 2020-08-04 TIL
+
+-아버지 일돕느라 가산에 온 관계로 아직 학교 서버에 대한 ssh를 손보지 못했다
+일단 김수환 선배 말씀으로는 아마 default gateway문제일 것 같다고 했는데, 다른 모든 서버가 같은 증상으로 접속이 불가능 한 것으로 봐선
+공유기 문제가 맞는 것 같다. 
+아마 flannel이랑 cni를 올리면서 공유기 설정이 건드려진 것이거나 
+지난번과 같이 sudo apt purge openssh-client 이런거 하면서 다시 설치하면 해결될 수도 있다. 
+
+일단 서버가 접속 되고서는 해볼 것이 
+<https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler>
+에 나와있는 VPA로 같은 테스트를 돌려보는 것이다. top nodes를 했을 때 사용량이 늘어나지 않을까?
+
+일단 깃헙에 나와있는 VPA설명을 써보자면, 
+
+________________
+VPA는 user가 pod들에 있는 컨테이너들의 (up to date == modern) 실시간?  resource limit과 request를 set up 해야 하는 
+것에서부터 자유로워지게 한다. VPA가 설정되면, request를 usage에 따라서 자동적으로 set 한다. 그리고 적절한 양의
+resource가 각 POD에게 허용되도록(AVAILABLE) scheduling 하게 한다. 
+initial containers configuration에 specified 된 limits와 request 사이 ratio를 유지할 것이다. 
+
+over-requesting resource 하는 pods들은 down scale할 수도 있고 up-scale도 가능하다. underrequesting than its usage over time 일때. 
+이건 Custom Resource Definition object called Vertical Pod Autoscaler. 어떤 pod가 vertically autoscaled 되야 하는지,
+어떻게 resource recommendations are applied 인지 정의 할 수 있다. 
+
 ## 2020-08-03 TIL
 
 * Kubernetes Autoscaling
