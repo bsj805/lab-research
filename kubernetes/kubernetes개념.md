@@ -11,6 +11,11 @@
 일단 서버가 접속 되고서는 해볼 것이 
 <https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler>
 에 나와있는 VPA로 같은 테스트를 돌려보는 것이다. top nodes를 했을 때 사용량이 늘어나지 않을까?
+아 근데 다시 metric server가 crashloopbackoff 상태로 바뀌어있어서 kubeadm reset, init 하고 다시 클러스터에 join시켰다.
+
+kubectl describe apiservices/v1beta1.metrics.k8s.io -n kube-system
+새로운 커맨드를 배웠다.
+자꾸 ㅇ이상한 10.97.123.172:443에 access하는데, 
 
 일단 깃헙에 나와있는 VPA설명을 써보자면, 
 
@@ -23,6 +28,30 @@ initial containers configuration에 specified 된 limits와 request 사이 ratio
 over-requesting resource 하는 pods들은 down scale할 수도 있고 up-scale도 가능하다. underrequesting than its usage over time 일때. 
 이건 Custom Resource Definition object called Vertical Pod Autoscaler. 어떤 pod가 vertically autoscaled 되야 하는지,
 어떻게 resource recommendations are applied 인지 정의 할 수 있다. 
+
+
+_________________________________________
+다시 서버의 metric server가 죽었다. 일단 reset시켜보고, log로 api-server의 상태를 확인해보면, 
+그냥 apiserver가 죽어서 metric server가 안될 뿐이다.
+
+##서버고치기
+
+route -n
+하면 라우팅 테이블이 보이고
+맨 위에서부터 0.0.0.0 으로 , 즉 모든 ip로 뿌려줄때 이 gateway를 타고가라는 규칙을 넣어둔 게 된다. 
+그게 공유기로 가도록 했으니까 이제 default gateway까지 ping을 해보면 switch에서 ip를 주고 있으니 
+default gateway와 ping이 된다는 것은 스위치까지 통신이 된다는 것이다.
+
+알고보니 문제는 공유기를 고정 아이피로 115.145.17ㅌㅌㅌㅌㅌ로 받아서 썼는데 DHCP로 설정이 되어 있었다.
+이말인 즉슨 , 우리 ssh는 모두 저 고정아이피로 들어가도록 되어있었는데 그게 아닌거지.? 
+![2313FD3652707C1B27](https://user-images.githubusercontent.com/47310668/89267940-d6685900-d672-11ea-97fa-956a57c04f2e.jpg)
+원래 IP는 서버 시스템 같은 시스템이 컴퓨터에 IP주소를 배급, 할당해 줘야 한다. 
+고정 IP주소는 사용자가 직접 IP 주소를 입력해 주소를 설정하는 방식이다.
+
+byeon@kubernetes-master:~$ curl https://ipinfo.io/ip
+115.145.1ㅌㅌ.ㅌㅌㅌ
+이걸 보면 아시다시피, public ip 자체가 공유기에 설정되어 있는 것이다. (WOW?) 
+우린 255.255.255.0 이라서 아마 학교에서 주어진 것 같기도 하다. 
 
 ## 2020-08-03 TIL
 
@@ -109,7 +138,11 @@ kubeadm init을 다시 해볼 필요성이 있는 것 같아서
 rm -rf /etc/cni/net.d
 rm -rf $HOME/.kube/config
 를 날리고
+sudo kubeadm reset은 이전에 마스터 노드랑 클라이언트노드에 해주었다.
+
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16 로 구성했다.
+
+
 kubelet environment file with flags in /var/lib/kubelet/kubeadm-flags.env
 
 config파일은 kubectl -n kube-system get cm kubeadm-config -oyaml 로 볼 수 있대. 
@@ -167,7 +200,9 @@ https://fblens.com/entry/%EB%A6%AC%EB%88%85%EC%8A%A4-%ED%8F%AC%ED%8A%B8-%ED%99%9
 를 따라서
 netstat -nat | grep 6443 했는데 방화벽이 안 열린것 같아 
 	
-iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
+iptables -A INPUT -p tcp --dport 6443 -j ACCEPT 마스터,클라이언트
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT 클라이언트
+iptables -A INPUT -p tcp --dport 4443 -j ACCEPT 클라이언트
 
 wget으로 파일다운로드가 가능하구나.
 
