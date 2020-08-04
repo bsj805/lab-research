@@ -15,7 +15,38 @@
 
 kubectl describe apiservices/v1beta1.metrics.k8s.io -n kube-system
 새로운 커맨드를 배웠다.
-자꾸 ㅇ이상한 10.97.123.172:443에 access하는데, 
+자꾸 이상한 10.97.123.172:443에 access하는데, 
+
+그래서 rm -rf cni 하고 rm -rf config 하고
+```bash
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.0.17 
+```
+
+로 init하고 
+```bash
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+이걸로 똑같이 클러스터에 join시키고flannel.yml apply -f 하고,
+
+/var/lib/kubelet/config.yaml에 kubeadm에 대해 설정한게 있다.anonymous에 대한 authentication을 true로 설정해주었다
+
+이걸 하고서 components.yaml에 containers 항목에서 0.3.6인거 확인하고, 
+```bash
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 6443 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT                      │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 4443 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 4443 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 2379 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 2379 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 2380 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 2380 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 10250 -j ACCEPT                    │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 10250 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 10251 -j ACCEPT                    │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 10251 -j ACCEPT
+byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 10252 -j ACCEPT                    │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 10252 -j ACCEPT
+
+```
+해놓고, 
+metric 서버 적용시켜주면 땡땡땡
+이제 kubectl top nodes가된다.
 
 일단 깃헙에 나와있는 VPA설명을 써보자면, 
 
@@ -149,7 +180,7 @@ config파일은 kubectl -n kube-system get cm kubeadm-config -oyaml 로 볼 수 
 
 마침내 성공! 
 
-~/metric/components.yaml 설정으로 되었다.
+~/metric/components.yaml.1 설정으로 되었다.
         args:                                                                                        
 - --cert-dir=/tmp                                                                          
 - --secure-port=4443                                                                       
@@ -203,6 +234,7 @@ netstat -nat | grep 6443 했는데 방화벽이 안 열린것 같아
 iptables -A INPUT -p tcp --dport 6443 -j ACCEPT 마스터,클라이언트
 iptables -A INPUT -p tcp --dport 443 -j ACCEPT 클라이언트
 iptables -A INPUT -p tcp --dport 4443 -j ACCEPT 클라이언트
+<https://waspro.tistory.com/506> 포트설정
 
 wget으로 파일다운로드가 가능하구나.
 
