@@ -1,5 +1,114 @@
 
 # Kubernetes basic
+## 2020-08-06 TIL
+
+https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/
+네임스페이스에 제한을 걸고,  위는 메모리 아래는 CPU
+<https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/>
+거기에서 계속 로ㅡ를 가해줬을 때, CPU limits보다 request가 많아지는 시점에서 pod가 
+생성될까?
+
+## 2020-08-05 TIL
+
+#### 과연 php가 어떻게 작동하길래 autoscaler은 새로운 pod를 만들게 되는가?
+
+-일단 hpa의 작동원리를 파악하려면 (https://kubernetes.io/ko/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough) 기존 php 가 어떻게 deploy 되었는지 보자.
+
+그중에, <https://stackoverflow.com/questions/53276398/kubernetes-cpu-multithreading> 라는 흥미로운 게시글이 있었다.
+일단 cpu usage를 100m으로 설정해 두면, 이는 0.1 cpu usage라는 것인데, machine을 멈췄을 때, 내
+싱글 쓰레드 프로그램이 그 순간에 running할 확률이 0.1인 것이라는 것이다. 
+multi thread 컨테이너라면, 컨테이너가 사용하는 cpu usage는 thread의 usage들의 합인 것이다. 
+어떤 코어에서 돌고 있는지에 대한 gaurantee는 없고, 대부분의 시간동안 0.1을 넘지 못하도록 되있는 것이다.
+cpu request of 0.1 은 system will try to ensure that you are able to have a cpu usage of at least 0.1 if your thread is not blocking often.  limit과 request는 container resource manifest 파일에 존재하는 듯 하다. 
+
+즉 0.1은 absolute quantity of cpu time 을 나타내는 것이다. 내 multithread program은 time sharing으로 작동하게 될 것이다.
+
+__________________________
+그래서 cpu 사용량을 관찰해서 replicaset의 파드 개수를 자동으로 scale하는 것이었네.
+우리는 파드가 replicaset 당 하나씩 총 5개로 늘어났었지. 
+
+** 해야되는일.
+
+**** 만약 resource를 줄여야 하는 상황이 왔을 때 몇퍼씩줄어드나? 아니면 절대량이 정해져있나?
+**** 만약 새 work가 들어왔을 때 resource를 어떻게 할당해 주나?
+**** 이 work를 확인하는 주기가 있는건가? 
+
+<<https://kubernetes.io/ko/docs/concepts/policy/limit-range/>>
+기본적으로 컨테이너는 쿠버네티스 클러스터에서 무제한 컴퓨팅 리소스로 실행된다. 
+리소스 쿼터를 사용해서 클러스터 관리자가 네임스페이스별로 리소스 사용과 생성을 제한할 수 있다. 
+우리도 실험할때 네임스페이스를 지정해놓고 하면 되겠다. 
+네임스페이스 내에서 파드나 컨테이너는 네임스페이스의 리소스 쿼터에 정의된 만큼의 CPU와 메모리를 사용할 수 있다.
+하나의 파드 또는 컨테이너가 사용 가능한 모든 리소스를 독점할 수 있기 때문에! -> 이게 기본적으로 극복이 불가능한가보다.
+리밋레인지는 리로스 할당(파드 또는 컨테이너)를 제한하는 정책. 
+테스트해볼 수 있겠다.
+<https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/podautoscaler/horizontal.go>
+여기에 horizontal.go 
+```go
+// Computes the desired number of replicas for a specific hpa and metric specification,
+// returning the metric status and a proposed condition to be set on the HPA object.
+func (a *HorizontalController) computeReplicasForMetric(hpa *autoscalingv2.HorizontalPodAutoscaler, spec autoscalingv2.MetricSpec,
+```
+![image](https://user-images.githubusercontent.com/47310668/89373290-433b2c00-d723-11ea-9896-0d105053e175.png)
+지금 HPA는 이와같이 metrics Aggregator로부터 metric을 전달받아.
+![image](https://user-images.githubusercontent.com/47310668/89373856-b8f3c780-d724-11ea-980b-c156138ab24f.png)
+<https://banzaicloud.com/blog/k8s-horizontal-pod-autoscaler/>
+_____
+metric에는 3종류가 있어
+**per-pod resource metrics** (CPU, MEMORY) whose metrics are fetched from
+the resource metrics API for each pod targeted by the HPA. 
+그리고 targetAverageUtilization value나 raw targetAverageValue 값이랑 비교.
+
+**per-pod custom metrics** per-pod resource metrics 처럼 custom metrics API에서 fetched, targetAverageUtilization value값을 설정하기 힘든 애들. raw argetAverageValue 값만 존재.
+
+**object metrics ** - a singlie metric that is fetched and compares it to the target value.
+
+메트릭은 resource metrics API (per-pod resource metrics) 나 Custom metrics API(prometheus) 같은데에서 fetched. 
+
+HPA는 part of kube-controller-manager daemon 으로서 HPA CONTROLLER가 run.
+
+/home/byeon/kubernetes/pkg/controller/podautoscaler/ 
+경로를 보면 horizontal.go 가 있는데 이걸 고치고 다시 build (재설치) (make quick-release)
+하면 내가 바꾼 대로 실행시킬 수 있다고 생각해. 
+우리는 그냥 kubeadm으로 build 했던 것 같기도함.
+
+로그파일은 /var/log/containers/kube-controller-manager.log 여기저장되어있어.
+
+지금 해봐야할 것은 현재 HPA가 이미 리소스를 다 쓰는 상황에서 새로운 일이 들어왔을 때
+그 일에 pod가 분배가 될지 궁금하다.
+
+일단 HPA는 controller manager안에서 --horizontal-pod-autoscaler-sync-period 의 default 값인 30초에 맞춰서 api를 통해 지정된 자원의 사용량을 확인하고, 설정된 HPA조건에
+맞을 때 오토스케일링을 수행하도록 되어 있다. (target cpu utilization percentage =30 이면 30%일때 오토스케일링)
+<https://arisu1000.tistory.com/27858>
+
+근데 늘리다가 또 30초가 되어서 또 포드를 늘리라고 할 수도 있어 (아직 팓이 안만들어졌는데)
+그래서 --horizontal-pod-autoscaler-downscale-delay 의 default값인 3분을 통해 포드가
+늘어날 때는 기본 쿨다운을 3분으로 설정할 수 있고, 포드가 줄어들 때의 기본 쿨다운 시간은 5분이다. --horizontal-pod-autoscaler-downscale-delay 옵션
+<https://medium.com/dtevangelist/k8s-kubernetes%EC%9D%98-hpa%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EC%98%A4%ED%86%A0%EC%8A%A4%EC%BC%80%EC%9D%BC%EB%A7%81-auto-scaling-2fc6aca61c26>
+초기에는 1개의 replicaset만 있게하다가 리소스 상태에 따라 10개까지 증가할 수 있도록.
+여기선 target을 5% 로 설정.
+
+kubectl describe nodes 하면 cpu 얼마나쓰는지 보이거든.
+![image](https://user-images.githubusercontent.com/47310668/89387252-31668280-d73d-11ea-963e-0c4d81755a90.png)
+--cpu unit이 1개가 equivalent to .
+100 m CPU == 100 milliCPU == 0.1 CPU. 
+
+<https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/>
+namespace 설정이랑 cpu 제한걸어보기.
+https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/
+아래거였네.내일하자.
+```bash
+# while true; do wget -q -O- http://php-apache.default.svc.cluster.local; done
+```
+이거 가운데 default 는 namespace 를 의미
+php container가 -n default-cpu-example 에 만들어졌으면
+
+http://php-apache.default-cpu-example.svc.cluster.local 로 해야한다. 
+_________________
+
+![image](https://user-images.githubusercontent.com/47310668/89373761-834ede80-d724-11ea-8039-62ed858e48a8.png)
+VPA는 반면 이런식으로 prometheus를 거치고 
+
+
 ## 2020-08-04 TIL
 
 -아버지 일돕느라 가산에 온 관계로 아직 학교 서버에 대한 ssh를 손보지 못했다
