@@ -7,7 +7,83 @@ https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-cons
 <https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/>
 거기에서 계속 로ㅡ를 가해줬을 때, CPU limits보다 request가 많아지는 시점에서 pod가 
 생성될까?
+우선 개념 재 정리가 필요하다.
 
+cpu limit이라 함은 request만큼은 기본적으로 쓸 수 있는데, 어플리케이션이 더 필요로 하면 컨테이너에 할당된 limit만큼 더 resource를 줄 수 있다는 것이다.
+만약 request들이 다들 넘쳐서 다들 limit만큼 가져가고 싶어하는데, 노드의 리소스를 초과했다면, 다들 request만큼 리소스를 줄이고 그래도 안되면 
+다 종료시킨다. (조대협의 블로그) 
+<http://www.riss.kr/search/detail/DetailView.do?p_mat_type=be54d9b8bc7cdb09&control_no=c2e6abcffe5ab812ffe0bdc3ef48d419>
+kubernetes auto scaler 에 대한 논문. (HPA) <lib.skku.edu> 통해서 들어가야 한다. 
+흠 
+일단 여러 논문을 찾아봤는데 한양에서 나온 논문( 로컬 경로에 저장) file:///C:/Users/bsj80/Downloads/KCI_FI002598773.pdf 이거 두개가 도움이 될 것 같다.
+REST API로서 접근할 수 있으니, (후자) 이를 이용하면 내 custom auto scaler을 만드는게 가능하지 않을까 생각중이다.
+metric도 metric server에서 받아올 수 있고, 다만 그게 걸린다. 현재 진행되고 있는 컨테이너를 복사해서 새로운 pod를 생성시키는 것.
+<https://kubernetes.io/ko/docs/reference/using-api/api-overview/> 이게 kube api 관련한 document이고,
+https://github.com/kubernetes-client/python/tree/master/examples
+이건 파이썬을 이용한 예제들, 
+https://www.google.com/search?q=kube+autoscaler+using+rest+api&oq=kube+autoscaler+using+rest+api&aqs=chrome..69i57.6894j0j7&sourceid=chrome&ie=UTF-8
+누가 autoscaling을 rest api로 구현해본 것 같기도..
+<https://docs.openshift.com/container-platform/3.9/rest_api/apis-autoscaling/v1.HorizontalPodAutoscaler.html> ㄹ던가
+
+<https://stackoverflow.com/questions/57885026/horizontal-pod-autoscaling-using-rest-api-exposed-by-the-application-in-containe> 라던가
+https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics
+일단 custom metric에 대해서 autoscaling을 어떻게 하는지 한번 따라가 보아야겠다. 
+________________________
+#### 작동중의 deployment의 항목 수정해보기
+일단 self link로 /tmp/hpa-v2.yaml에 나와있는게 
+/apis/autoscaling/v2beta2/namespaces/default/horizontalpodautoscalers/php-apache 라고 써져있는데
+음 이 링크는 
+kubectl describe services 에서 api-server service의 endpoint에서 시작하는 것 같다. 192.168.0.17:6443 이거겠지.
+
+이거는 proxy 서버를 작동시켜서 그 후에 localhost:8080/apis/... 해서 json format으로 받아올 수 있어. api list 보기 가 이거랑 같은거야.
+
+일단 
+```bash
+kubectl edit deployment php-apache //하면 /tmp/kubectl-edit-2d713.yaml 파일이 나타나. 여기에있는걸 수정하면 즉시반영된다고한다.
+```
+spec의 replicas 를 5로 바꿔주니 pod가 5개가 생성된다.
+
+실제로 할당된 cpu 양은
+kubectl describe nodes 로 볼 수 있는데
+그 중 실제 사용량은 kubectl top nodes로 확인가능하다.
+kubectl top pods라면 pod별 사용량
+
+kubectl edit deployment php-apache로 cpu request와 limit을 둘다 100m으로 만들어버렸더니 눈에띄게 느려진 것이 보인다.
+
+#### namespace에 cpu제한을 걸고 하나의 php에 로드를 걸어논 뒤, 자원양을 다 사용중일 때 새로운 php 서버를 만든다면?
+kubectl create namespace const-cpu
+```bash
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-min-max-demo-lr
+spec:
+  limits:
+  - max:
+      cpu: "200m"
+    min:
+      cpu: "50m"
+    type: Container
+
+```
+해놨고, 
+HPA의 CPU를 정의할 때, Utilization은 Limit가 아닌 Request의 값을 기준으로 합니다. 따라서 Request에 너무 낮은 값을 설정할 경우, 실제로는 CPU를 많이 사용하고 있지 않아도 오토스케일링이 발생할 수 있음에 유의합니다. (<https://www.ard.ninja/blog/kubernetes-hpa-uses-cpu-request-not-cpu-limit/>)![image](https://user-images.githubusercontent.com/47310668/89507191-237d3400-d807-11ea-8079-39aaefbee1d9.png)
+
+내 api가 멀쩡함을 알아볼 수 있음
+kubectl get --raw /apis/custom-metrics.metrics.k8s.io/v1beta1
+kubectl limitrange 로 임의로 네임스페이스에 할당할 수 있는 cpu 개수를 줄여서 테스트를 해보려했는데
+단순히 상한선을 정해준 것일 뿐인가봐. 
+<![image](https://user-images.githubusercontent.com/47310668/89504002-57098f80-d802-11ea-8f5f-fe4b61e672f1.png)
+>
+![image](https://user-images.githubusercontent.com/47310668/89504623-49083e80-d803-11ea-9023-d606ce17a918.png)
+지금 limit range는 최소 50 최대 50 으로 해놨지만 이미 초과했다. 
+![image](https://user-images.githubusercontent.com/47310668/89504697-6806d080-d803-11ea-82c0-eb89d9e05faa.png)
+##### 문제상황 분석
+1. 지속적으로 리소스를 잡아먹게해서 cpu를 많이 쓰는 작업을 찾는 것. 그래야 문제상황인 하나의 작업이 리소스를 차지해서 새로운 작업이 시작되지 못하는 경우를 만들 수 있지 않을까?
+2. https://github.com/kubernetes/kubernetes/blob/f7e3bcdec2e090b7361a61e21c20b3dbbb41b7f0/pkg/controller/podautoscaler/horizontal.go
+라는 HPA 코드를 찾은 것 같은데, 
+이 코드를 수정해서 빌드하는 게 재설치를 통해서만 가능한지
+3. 코드에 대한 이해를 해봐야할듯
 ## 2020-08-05 TIL
 
 #### 과연 php가 어떻게 작동하길래 autoscaler은 새로운 pod를 만들게 되는가?
