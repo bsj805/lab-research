@@ -10,6 +10,15 @@
 
 로컬 워드에 저장
 
+근데 이전에 sbseo ychan 연구일지를 보니 horizontal.go를 수정하신 것 같았는데,
+용량이 줄어든 horizontal.go가 하나 발견되었지만 그냥 이전버전의 hpa였던 것 같았다.
+아니면 이걸 수정하신 게 아니었다거나. 
+보면 그냥 다운로드 일자와 다 똑같고 수정되었을 것 같은 파일이 보이지 않는다.
+
+legacy_horizontal_test.go 가 있는데, 보면 
+특정상황에서 테스트를 돌려보고자 하는 것이다. 
+중간에 run test가 있고, 그걸 특정testcase.runtest로 돌려보는 것 같은데.
+
 ## 2020-08-06 TIL
 
 https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/
