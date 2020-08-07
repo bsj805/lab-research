@@ -1,5 +1,15 @@
 
 # Kubernetes basic
+## 2020-08-07 TIL
+
+-- 오늘 사업자 등록증이 나왔다고 한다 서울 방문...
+
+일단 해볼것은, 코드이해.
+<https://github.com/kubernetes/kubernetes/blob/f7e3bcdec2e090b7361a61e21c20b3dbbb41b7f0/pkg/controller/podautoscaler/horizontal.go#L188> 에 따라서 
+쭉 읽어나가보자.
+
+로컬 워드에 저장
+
 ## 2020-08-06 TIL
 
 https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/
