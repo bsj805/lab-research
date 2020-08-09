@@ -41,6 +41,37 @@ horizontalController라는 struct -
 와 같은 informer들이 존재. 얘네들의 cache에서 hpa list를 가져올 수 있는듯.
  
 #### /pkg/controller/podautoscaler/replicacalculator.go
+defaultTestingTolerance : 0.1  //scale up down 할때 상수
+
+replicaCalculator struct: target amount of replicas 를 calculate 하기 위한 모든 정보를 bundle해 놓았음.
+
+* replicacalculator struct 아래에
+metricsClient( 우리 metric 서버겠지) 
+pod lister( 그 pod에 대한 정보가져온다는)
+tolerance scale up 하거나 할때 상수값으로 쓰이는
+cpuInitialization period 이건 아마 time slicing 할 때 필요한게 아닐까
+delay of Initial Readiness Status:??
+
+
+GetResourceReplicas  이 함수는 desired replica count를 target resource utilization percentage( 우리가 get hpa 하면 보이는 target값) 에 기반해서 
+calculate 한다. 인자로 어떤 namespace 를 대상으로 하는지, selector config가 무엇인지, 현재 replica count값은 얼만인지를 필요로 한다. 
+
+#### /staging/src/k8s.io/apimachinery/pkg/labels/selector.go 
+
+selector은 label selector을 나타낸다.
+interface로 구현해놨고,
+
+matches 라는 함수는 만약 selector가 given set of labels랑 match 하면 
+return true else false.
+
+empty는 만약 이 selector가 selection space를 restrict 하지 않는 경우.
+String 이라는 함수는 이 selector을 나타내는 human readable string을 return
+
+Add함수는 requirements를 selector에 추가해줌.
+
+selector의 deepcopy를 만드는 함수도 있네.
+
+	`
 
 ## 2020-08-07 TIL
 
