@@ -1,5 +1,47 @@
 
 # Kubernetes basic
+## 2020-08-09 TIL
+
+git clone kubernetes/kubernetes.git 쪽을 해서 (https://github.com/kubernetes/kubernetes/tree/f7e3bcdec2e090b7361a61e21c20b3dbbb41b7f0)
+쿠버네티스를 받아왔는데, pkg/master 디렉토리에 controller.go가 있었다. 
+#### controller.go
+controller은 kubernetes service name = "kubernetes" 라는 서비스의 일종처럼 작동한다.
+controller은 controller manager 역할이래. 이게 처음에 kubernetes 서비스 create 하고,
+default, kube-system, kube-puiblic namespace를 만들고, IP를 제공, repair check on service IP.
+
+newbootstrapController은 master node의 core의 capabilities를 watch하는 controller를 하나 생성해서 리턴해준다.
+
+core controller가 bootstrapping동안 exist해야하는데, 그걸 시작시키는 PostStartHook. 
+
+runkubernetesnamespaces : 주기적으로 모든 internal namespaces 가 exist 함을 체크, 없으면 다시 다 생성.
+
+runkubernetesservice: 서비스의 status를 periodically update
+
+createportandservice: array of service port를 만들어. nodeport 변수값이 0이면 serviceport가 사용되고, 아니면 다른포트. master의 service를 노드포트 ip address에 묶어
+
+#### /pkg/controller/podautoscaler/horizontal.go
+
+scaleuplimit: 2.0
+scaleuplimitminimum = 4.0
+
+horizontalController라는 struct - 
+ scaleNamespacer : 
+ hpanamespacer
+ mapper 이 세개는 그냥 어떤 네임스페이스에서 할지를 정보를갖는것 같고
+ replicaCalc 라는 ReplicaCalculator 이 있네.
+ Eventrecorder가 있고,
+ hpaLister? - New horizontal controller에게 전달된 informer에게부터 shared cache에서 HPA들을 가져올 수 있다? hpaLister is able to list/get HPAs from the shared cache from the informer passed in to NewHorizontalController.
+ 
+ pod lister도 있고,
+ queue workqueue.RateLimitingInterface ( Controllers that need to be synced)
+ 
+ func NewHorizontalController 이 저 struct를 instance로 만드는 것 같고, hpa lister와 pod lister 대신에 
+ hpaInformer autoscalinginformers.HorizontalPodAutoscalerInformer,
+	podInformer coreinformers.PodInformer,
+와 같은 informer들이 존재. 얘네들의 cache에서 hpa list를 가져올 수 있는듯.
+ 
+#### /pkg/controller/podautoscaler/replicacalculator.go
+
 ## 2020-08-07 TIL
 
 -- 오늘 사업자 등록증이 나왔다고 한다 서울 방문...
