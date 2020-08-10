@@ -1,6 +1,34 @@
 
 # Kubernetes basic
-## 2020-08-09 TIL
+
+## 2020-08-10 / 
+<https://github.com/kubernetes/community/blob/master/contributors/devel/sig-scalability/kubemark-guide.md>
+해석
+
+kubelet이 pod를 create, manage 그리고 systemd 로서 run. 이 systemd를 쓰냐 supervisord service on VM을 쓰냐는 VM distro에 달려있고 현재로서는 GCI image를 사용한다. 
+KUBEMARK라는 것은 performance testing tool이다. simulated cluster에 experiment를 user가 실행할 수 있다.
+primary use case 는 scalability testing이다. simulated clusters 가 실제 
+사용보다 더 큰 크기를 갖고 있을 수 있기 때문이다. master components ( API server, Controller Manager, scheduler) 
+
+/var/logs/ 디렉토리에 모든 로그가 쌓임.
+
+<https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/instrumentation.md>
+instrumenting kubernetes
+쿠버네티스 계측하기.
+_____________________
+
+kubernetes components의 metric instrumentation에 대한 guidelines 를 
+reference 하고 outline. components들은 instrumented using Prometheus Go client Library. non-Go components 들은 libraries in other language를 사용해야.
+metric은 HTTP로 expose 되잖아. in Prometheus metric format으로. 
+thread safe하게 만들기 위해 set and increment 기법을 사용한다.
+A query to a metric system selecting by UUID via a the info level metric could look as follows:
+
+```bash
+kube_pod_restarts and on(namespace, pod) kube_pod_info{uuid=”ABC”}
+```
+======================================
+
+## 2020-08-09 TIL 8/10 코드분석 cont 
 
 git clone kubernetes/kubernetes.git 쪽을 해서 (https://github.com/kubernetes/kubernetes/tree/f7e3bcdec2e090b7361a61e21c20b3dbbb41b7f0)
 쿠버네티스를 받아왔는데, pkg/master 디렉토리에 controller.go가 있었다. 
@@ -18,6 +46,51 @@ runkubernetesnamespaces : 주기적으로 모든 internal namespaces 가 exist �
 runkubernetesservice: 서비스의 status를 periodically update
 
 createportandservice: array of service port를 만들어. nodeport 변수값이 0이면 serviceport가 사용되고, 아니면 다른포트. master의 service를 노드포트 ip address에 묶어
+https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/controllers.md
+이걸보면서 알아보자. 
+
+kubernetes controller은 active reconciliation process.
+watches some object for the world's desired state and it watches the world's actual state.
+Then, it sends instructions to try and make the world's current state.
+
+가장 simplest implementation은 
+
+``` bash
+for {
+  desired := getDesiredState()
+  current := getCurrentState()
+  makeChanges(desired, current)
+}
+```
+
+계속 반복하는거지. 
+
+Controller 코드를 작성하는 guideline이 있다.
+
+1. Operate on one item at a time. workqueue.Interface를 쓴다면, 
+특정 리소스에 대한 변경사항을 queue에 올리고, 여러 워커들이 있을때 실행시키기?
+
+Many controllers must trigger off multiple resources ( ex. I need to check X if Y changes) 
+하지만 거의 모든 컨트롤러는 저걸 check x 라는 명령을 queue에 넣어두면서 
+실행시킬 수 있게 된다. for instance, replicaset controller은 being deleted 되는 pod에 react 해야 하는데, 바로 지워버리는 것이아니라, related replicaset을 찾은 뒤, queue를 하는 것이다. 
+
+2 Random ordering between resources. Controller가 queue off multiple types of resources ( 할당해줄때), resources 사이의 ordering을 guarantee 해주지 못함.
+그래서 distinct watch( 누가 이걸 볼 때에도) created resource A/X created resource B/Y 라고 해도 , 실제로 controller는 created resource B/Y, created resource A/X 라고 보일 수도 있음
+3. level driven이야. not edge driven. 계속 돌아가지 않는 shell script를 가지고 있는 것 과 같이, 내 controller은 다시 돌기 전까지 indeterminate( 특별히 정해져있지 않은?)  amount of time동안 off 되어 있을 것이다. 
+이말인 즉슨, 특정 API object가 true로 나타난 다고 하더라도, false->true를 볼 수 있는 것이 아니라, 단순히 controller가 보았던 그 시점에 true가 있는 것일 뿐인 것이다. API watch 라는 것도 이런 문제가 있다. 이전 status 를 저장해 놓고
+새로 보았을 때 변했다 와 같이 해놔야 한다. 
+
+4. Use SharedInformers. (오 우리 그 controller struct인가 replicacalculator에서 봤던 그 SharedInformers hpa list와 pod list를 볼 수 있었지) 이 SharedInformers는 provide hooks to receive notifications of adds, updates, and deletes for a particular resource. They also provide Convenience functions for accessing shared caches and determining when a cache is primed( 준비가 되어있는) . 
+Use the factory methods down in https://git.k8s.io/kubernetes/staging/src/k8s.io/client-go/informers/factory.go to ensure that you are sharing the same instance of the cache as everyone else.
+informers 도 종류가 여러가지네 저 directory대로 가보면. 
+scheduling 관련도 있고, flowcontrol, network, autoscaling (<- ??????)
+autoscaling  .go 파일은 사실 여기건가? 
+https://git.k8s.io/kubernetes/staging/src/k8s.io/client-go/informers/autoscaling ----확인
+
+API server에 대한 connection, duplicate serialization costs (server-side),
+duplicate deserialization costs (controller-side), 
+
+
 
 #### /pkg/controller/podautoscaler/horizontal.go
 
@@ -53,9 +126,51 @@ cpuInitialization period 이건 아마 time slicing 할 때 필요한게 아닐�
 delay of Initial Readiness Status:??
 
 
-GetResourceReplicas  이 함수는 desired replica count를 target resource utilization percentage( 우리가 get hpa 하면 보이는 target값) 에 기반해서 
+**GetResourceReplicas**  이 함수는 desired replica count를 target resource utilization percentage( 우리가 get hpa 하면 보이는 target값) 에 기반해서 
 calculate 한다. 인자로 어떤 namespace 를 대상으로 하는지, selector config가 무엇인지, 현재 replica count값은 얼만인지를 필요로 한다. 
 
+369**groupPods** 이 함수는 readyPodCount, ignored pod count, missingpods를 리턴.
+ignored pod 라 함은, pending하는 pod.
+missing pod 라 함은, metric을 안 주는 pod
+
+unready pods는 그냥 ignored. (unready == pod.Status.StartTime ==nil || condition == nil) 이 condition 변수는 podutil.GetPodCondition(&pod.status, v1.PodReady) v1이라는 것은,  
+<https://stackoverflow.com/questions/27764421/what-is-underscore-comma-in-a-go-declaration>
+go language에서는 
+```go
+_, pod := range pods { } 
+```
+라고 하는 경우가 많은데, 오른쪽의 함수가 return 값이 여러개인 경우에,
+pod 라는 리턴값 하나에만 관심 있으면 _, pod, _, 와 같이 pod의 값만 쓸 때
+blank identifier인 _, 로 채우는 것이다. 
+``` go
+// Pod is a collection of containers that can run on a host. This resource is created
+// by clients and scheduled onto hosts.
+type Pod struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Specification of the desired behavior of the pod.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +optional
+	Spec PodSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+
+	// Most recently observed status of the pod.
+	// This data may not be up to date.
+	// Populated by the system.
+	// Read-only.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+	// +optional
+	Status PodStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+}
+```
+이게 pod struct의 정의인데 v1이라 함은.. 무엇일까?
+<https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md>
+여기 개발자들을 위한 해설문서가 있다.
+
+또 https://github.com/kubernetes/community/blob/master/contributors/devel/sig-scalability/kubemark-guide.md 이런데를 보니 해설문서도 있는 것 같다.
 #### /staging/src/k8s.io/apimachinery/pkg/labels/selector.go 
 
 selector은 label selector을 나타낸다.
@@ -70,6 +185,9 @@ String 이라는 함수는 이 selector을 나타내는 human readable string을
 Add함수는 requirements를 selector에 추가해줌.
 
 selector의 deepcopy를 만드는 함수도 있네.
+
+이건 그리고 token으로 분리하고 lexer와 parser rule 들이 담겨있네.
+label을 맞춰보기 위해서. 
 
 	`
 
