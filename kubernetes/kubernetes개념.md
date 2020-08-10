@@ -1,7 +1,7 @@
 
 # Kubernetes basic
 
-## 2020-08-10 / 
+## 2020-08-10 / CNI 및 네트워크 https://sebiwi.github.io/blog/how-does-it-work-kube-2/
 <https://github.com/kubernetes/community/blob/master/contributors/devel/sig-scalability/kubemark-guide.md>
 해석
 
