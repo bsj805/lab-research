@@ -2,6 +2,48 @@
 # Kubernetes basic
 
 ## 2020-08-10 / CNI 및 네트워크 https://sebiwi.github.io/blog/how-does-it-work-kube-2/
+
+### 2020-08-10 회의록
+_____
+hpa로 리소스 어떻게 분배하는지 확인하는 거 조언:
+large job은 웹서버에서 matrix multiplication 시키는게 많이 잡아먹음
+그걸로 많이 잡아먹게 해놓고 php-apache로 돌려보는거지.
+의문점은 HPA가 자동으로 작동하는게 있는지?
+그냥 틀어두면 혼자서 replica 열심히만드나?
+HPA안만들어도? ->교수님이 궁금해하심
+nginx 를 실행시켜서 
+
+request 보내는쪽에서 엄청많이 보내는 데 
+
+
+hpa로 resource
+
+matrix multiplication, HPC 
+클라이언트쪽에서 matrix multiplication을  웹서버 에서 계산하고 response
+
+large job으로 이걸
+
+php-apache를 small job으로 쓰고
+
+php-apache로 response time이 얼마나 걸리는지 한번 보자.
+
+large job으로 쓸 때에 이게 cpu를 다 잡아먹을 수 있을정도로 로드가 크대.
+
+이걸 쿠버네티스로 작업하는 예제 가 있을 것이다. -> 이걸 찾아보고.
+
+이론을 공부할 때에는 끝이 없기 때문에 특정 선을 정해놔야한다. milestone 포인트가 무엇일까?
+
+GPU 를 이용한 resource 관리의 네트워크 overhead를 극복하기 위함이다. 
+
+
+response time이 
+
+matrix computation에 한 10%정도 늘어나도 된다 하면 
+10%까진 줄여도 되는거지. 
+
+즉슨, matrix computation에 걸리는 시간을 좀 희생시키더라도 
+php-apache의 시간이 올바르게 뜨는지가 궁금한 것이야.
+
 <https://github.com/kubernetes/community/blob/master/contributors/devel/sig-scalability/kubemark-guide.md>
 해석
 
