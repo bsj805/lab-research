@@ -1,4 +1,5 @@
-### C++ 도커 작업하기.<https://www.slideshare.net/iFunFactory/docker-linux-linux-66590915>
+### C++ 도커 작업하기.
+<https://www.slideshare.net/iFunFactory/docker-linux-linux-66590915>
 
 ``` DOCKERFILE
   1 FROM ubuntu:20.04                                                                                                                                                                                             
@@ -181,7 +182,7 @@ env:
   value: {{ argument_1 }}
 args: ["$(ARGUMENT)"]
 Where {{ argument_1 }} is an environment variable.
-
+```
 기존 index.php를 시간차이를 내도록해서
 bruzn/overloadphp-apache . 로 
 ```
@@ -279,3 +280,49 @@ small-apache에게 1000m을 부여해줬다.
  
  2998:2998 cpu util 75%
  
+흠. 이걸로 알아낸 것은, 스스로 cpu usage를 조정하는 무언가가 있다.
+
+### CPU Management Policies.
+<https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/>
+Default값으로, kubelet은 CFS quota (completely fair scheduler) 를 이용해 pod CPU limit을 지키게 한다. 노드가 CPU-bound pods 를 많이 run 할수록, workload는 
+pod가 throttling이 되는지나 scheduling 될 때 어떤 CPU core가 available 한지 에 따라 다른 CPU core로 움직일 수도 있다. 많은 workloads 들은 이런 migration에 그렇게 sensitive하지 않으며, 
+어떤 intervention 없이도 works fine
+
+2 supported policy
+1. none: default
+2. static: allows pods with certain resource characteristics to be granted 
+  increased CPU affinity and exclusivity on the node. 혼자 돌아도 되도록 설정하는게 
+  (얘 하나만 돌아가게 할 수 있나본데?)
+CPU manager은 CRI를 통해서 periodically write resource updates.
+
+reconcile frequency는 --cpu-manager-reconcile-period. ==default는 --node-status-update-frequency
+
+static policy가 containers in guaranteed pods들을 exclusive acess to CPU하게 만드는거.
+이 exclusivity는 cpuset cgroup controller를 통해서 이뤄짐. 
+exclusively allocatable CPU는 total num of CPUs in the node - any CPU reservations by the kubelet --kube-reserved or --system-reserved options. kubelet에 --reserved-cpus option을 달면 돼.
+
+음 cpu가 배정되는 과정이 cpus are removed from the shared pool and placed in the cpu set for the container if guaranteed pods.  
+즉 shared pool에 있는 CPU만 가지고 CFS가 cpu usage를 관리하는거지. 
+
+내 상황도 
+<https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/>
+와 같이 설명가능
+
+node에 cpu resource limit이 있는데, 그것보다 cpu를 많이 쓰려고 하니 cpu use가 being
+throttled된다. 
+
+```bash
+kubectl get nodes --no-headers | awk '{print $1}' | xargs -I {} sh -c 'echo {}; kubectl describe node {} | grep Allocated -A 5 | grep -ve Event -ve Allocated -ve percent -ve -- ; echo
+```
+https://dzone.com/articles/kubernetes-resource-usage-how-do-you-manage-and-mo 
+
+
+우리가 만든게 overcommitted 한 상태인데, 
+https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/pod-priority-api.md
+의 priority에 따라 결정된다. 
+
+사실 내가만든 상태는 쿠버네티스에서꽤흔한일이다 
+보통 workload는 high priority critical tasks, non-urgent tasks의 mix이다. 
+non-urgent면 기다릴 수 있는 거지.
+Cluster management는 그런 workloads를 구분하고, 어떤게 acquire the resource 해야 하고 어떤게 기다릴 수 있는지 구분해야한다.
+클러스터에 제공할 key metric 중 하나이다. priority가. 
