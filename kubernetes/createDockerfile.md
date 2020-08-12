@@ -407,6 +407,8 @@ best effort pod: 가 lowest priority 그래도 노드에 있는 만큼의 resour
 Burstable pods: minimal resource guarantee( requests만있어) 가지고 있어,
 can use more resources when available. 이런 container은 best effort pod가 없을  때 killed 되는 victim이 된다. 
 
+
+
 guaranteed pods: top-priority and guaranteed to not be killed until they exceed their limits. 자기보다 lower priority만 먼저 죽이도록 되어있다.
 
 
@@ -512,4 +514,82 @@ Contaier B : (500 / 2000) * 1024 = 256
 2000 milicpu (2 CPU)를 갖고 있는 Node에 Container A는 1500 milicpu를 Request로 요청하고 Container B는 500 milicpu를 Request로 요청한다고 가정한다면, Container A와 Container B의 Weight의 비율은 3:1만 충족시키면된다. 비율을 적용하는 기준값은 shares의 기본 값인 1024를 이용한다. 따라서 Container A의 shares 값은 768이 되고 Container B의 shares 값은 256이 된다. shares 값은 [공식 3]을 통해서 계산할 수 있다
 ```
 
- 
+<https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/>
+cpu resource control에 대한 세가지 :
+  1. CFS shares (what's my weighted fair share of CPU time on this system) 
+  2. CFS Quota (what's my hard cap of CPU time over a period)
+  3. CPU affinity (on what logical CPUs am I allowed to execute).
+
+이제 container spec에 cpu limit 걸 때에는 CFS QUOTA를 이용해서  <https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt>
+조정. 이게 말하는 바는, given 'period' 동안 'quota' microsecond CPU time을 사용할 수 있게 한다는 것이다.
+
+근데 CPU manager가 static policy 로 enable 되면, shared pool of CPUs 를 manage하게된다. 처음에 이 shared pool은 compute node의 모든 CPU를 가지고 있다. container with integer CPU request in a Guaranteed pod( 최상위 priority) 가 kubelet에 의해 생성되면,
+CPUs for that container are removed from the shared pool and assigned exclusively for the lifetime of the container. 즉 shared pool의 cpu가 아닌 독자적인 cpu를 가지게 된다는 것. 다른 container들은 exclusively allocated cpu를 가지고 있었을 수도 있으니 여기서부터 migrated off 한다.
+
+다른 non-exclusive CPU containers (Burstable, BestEffort and Guaranteed with non-integer CPU) run on the CPUs remaining in the shared pool. 즉 guaranteed 된 것중에 integer cpu 값으로 설정하면 static 인 게 된다는 것 같은데 그치.
+
+어.. 그 memory 값까지 지정같이 안해주면 guaranteed 모드가 안되네. (/kube/testphp2/hpa-test2.yaml 로 성공)
+describe node 해보면 2000 ( 즉 8000 * 1/4 )가 cpu: "2" 값으로 정해져있고,
+실제로 부하를 가하니 2000m을 사용한다. responsetime은 엄청나게 늘어나서 5초 7초..
+일단 small-test2.yaml 을 실행시키고 기존 php-apache는 best effort로 바꿔서 large load를 가한다.
+
+기존 php-apache : 3992m - small-apache : 895m-> 999m (small은 load 1개 기존은 load 4개)
+
+여기서 php-apache:의 로드를 늘려본다.
+response time이 느려졌다? 일단 cpu는 4319 : 999  70% 사용중 ( 총 8000m) 
+아직 small pod는 responsetime 동일 4986m : 999m 75% 사용중
+
+이제 로드를 php-apache에 더주면, 전체적으로 response time이 더 늘어나며,
+5972m : 999m 87퍼
+아직 small은 response time에는 큰 차이 없는듯? 
+이제 php-apache에 load를 더 가했다. 아직은 response time에 차이가 없다.
+일단은 best effort니 만큼 최대한을 쓰는 것 같다. 6931: 999m 노드사용률 99% 7969
+
+흠.. 하나를 늘리면 guarantee에서는 안뺏어가겠지? ? responsetime이 늘어나는 것 같아보이진 않는다.
+음 아마 6950:995: 현재상태 유지인것 같다.
+일단 하나를 늘렸는데도 guarantee에서는 못 뺏어갔어.
+하나를 더 늘리니 (9개인듯?) response time이 늘어나고있어. 
+하지만 6597: 993 여전하네. 
+
+이제 small-apache에 부하를 가해보자. 
+response time이 늘어나보이는데 ( 기존거) 
+
+
+일단 실험해볼거는
+
+현재 /kube/testphp2/hpa-test.yaml 로 php-apache 하나 만들고
+현재 /kube/testphp2/small-test2.yaml 로 small-apache 하나 만들고
+
+small-apache에 small1 로 로드를 가해서 그때의 top node를 구할꺼야
+그리고 기존 -apache에 lo1~ lo 6까지 가해서 그때의 top pod와 top node값을 출력해
+
+기존 -apache에 lo7,8 까지 가해서 그떄의 top pod 와 top node값을 출력해
+이러면 과부하 상태일텐데,
+이 상태에서 small2 로 small에 로드를 가해서 그때의 top node 값과 top pod 값을 출력
+하면 오늘 나온 결과랑 똑같겠지?
+
+그리고 
+while true; do wget -q -O- http://php-apache.default.svc.cluster.local; done
+으로 구했었는데, 
+echo $(date +"%T")
+echo $(date +"%r") <https://mkblog.co.kr/2019/12/29/bash-current-date-time/>
+하면 현재시간 나오는데 이거랑 어떻게 붙일수없나?
+while true; echo $(date +"%T") >>helloworld.txt ; do wget -q -O- http://google.com >>helloworld.txt ; done
+이런식으로 하면 되나본데
+>> result.txt
+
+#### 20-08-12 오늘의 회의록
+priority 가 과도하게 차지하도록 하게 되었을때 낮은애들을 다 죽여야 하느냐 에 대한 의문
+
+real time > AF > Best Effort 
+
+semi-guaranteed 같이 얘보다는 조금 나은 priority를 가지는 애에게 
+
+response time graph가 필요해~
+
+그리고 HPA는 왜 필요한가  내 생각에는 한 노드에 한 파드가 cpu 를 몽땅 갖는것이 안되는
+상황 ( 여러 노드에 pod를 분산시키는 것이 좋은 상황) 에서 쓰는 것 같은데..
+
+그렇다면 지금 best effort 끼리는 cpu를 나눠갖고있는데 우리의 의문점은 이미 solved되어 
+있는 것이 아닌가?
+
