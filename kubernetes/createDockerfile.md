@@ -247,7 +247,9 @@ small-apache에게 1000m을 부여해줬다.
  
  hpa는 프로그램을 시작시키기 전에 켜야된다고 한다. 
  그리고 limit을 정해주어야 작동한다고 한다 deployment에 대해.
+ ```
  while true; do wget -q -O- http://10.97.176.44:80; done
+ ```
  load를 기존거에 더 가해주니까 100m정도를 가져가는 것 같음
  그랬다가 다시 small 쪽 로드를 늘려주니 또 small쪽에서 cpu를 더 가져감. 500정도
  small에 로드 하나 더 해주니 500 더 가져감. 
@@ -384,23 +386,30 @@ Requests and Limits와 QoS class 사이의 관계는 미묘하다. (적다.)
 Hypothetically, users could use an API to specify whether a pod is guaranteed or best-effort. ( 나중에는)
 어찌되었던, 지금은, pod를 QoS class로 분류하는 것은 tied to "Requests and Limits" . QoS는 memory guarantee를 위해 만들어지긴 했다.
 
+______________
 
 Pod는 3개의 다른 class 중 하나가 될 수 있다.
 limits 와 requests (얘는 있어도 되고 없어도 되고)  가 set for all resources across all containers and they are qeual, pod is classified as **Guaranteed.** (보장..)
+- 파드 내 모든 컨테이너가 CPU 상한과 CPU 요청을 가지고 동일할 때.
+
 
 Requests 와 limits(얘는 있어도 되고 없어도 되고) 가 set for one or more resources and they are not equal, pod is **burstable**.(원하면 CPU를 더 가져간다!) 
 limit이 specified 되지 않으면 node capacity만큼이다. 
+- 파드 내에 request가 정해진  pod가 있는 경우.
 
 request와 limit이 not set이면 **best-effort** 로 분류돼.( 새거가 들어오면 기꺼이 내주지 & CPU guarantee가 맞지 않으면 pods가 killed 되는거.)
 
 
+lowest priority to highest priority ( guaranteed가 가장 높은거)
 
 best effort pod: 가 lowest priority 그래도 노드에 있는 만큼의 resource사용가능
 
-guaranteed pods: top-priority and guaranteed to not be killed until they exceed their limits. 자기보다 lower priority만 먼저 죽이도록 되어있다.
-
 Burstable pods: minimal resource guarantee( requests만있어) 가지고 있어,
 can use more resources when available. 이런 container은 best effort pod가 없을  때 killed 되는 victim이 된다. 
+
+guaranteed pods: top-priority and guaranteed to not be killed until they exceed their limits. 자기보다 lower priority만 먼저 죽이도록 되어있다.
+
+
 
 
 Out Of Memory score 이 있네 높을수록 kill
@@ -409,12 +418,98 @@ Swap off 하는 이유가 이 QOS때문이라고.
 swap space 때문에 memory가 threshold에 부딪혔을 때 다른 현상이 발생가능
 
 
+그래서 guaranteed 로 해주려고 small-test.yaml의 cpu limit을 1000m으로
+걸고 request 는 0으로 둔채 small-test를 deploy 해보았다.
+
+결과: QoS class: Burstable로 뜬다!
+
+limit과 request 설정안하면 best-effort
+
+```
+kubectl run --generator=run-pod/v1 -it --rm lo2 --image=busybox /bin/sh
+
+while true; do wget -q -O- http://small-apache.default.svc.cluster.local; done
+
+while true; do wget -q -O- http://php-apache.default.svc.cluster.local; done
+```
+
+역시 1000m을 잡아먹고 더 늘어나지않는다.
+바로 load generator 하나 추가하니까 throttling 발생.
+둘다 레스폰스타임이 늘어나버림.
+
+1001m은 반올림되어서 그런가보다.
+
+autoscaler는 cpu request와 limit가 정해져야지만 쓸 수 있대.
+
+일단 8개를 실행시켜서 7953 m 의 cpu를 사용하게 해놓았어.
+response time은 많이 늘어났고, cpu 100%사용중.
+이상태에서 small-apache에 load를 가해주면 small-apache는
+best effort인 php-apache보다 priority가 높기 때문에
+1000m을 가져올 수 있을 것.
+처음에는 2, 1 초가 계속해서걸리다가, 줄어들것으로 예상했는데
+아니다. 그냥 다른 php-apache 서버처럼 얘에도 부하가 걸리는지
+cpu 사양이 안좋아진것인지, 1초나 2초가 걸린다.
+1000m을 갖게 되긴 했다.
 
 
+<https://www.replex.io/blog/everything-you-need-to-know-about-kubernetes-quality-of-service-qos-classes>
+______________________
+guaranteed pods 가 Exclusive CPU core을 얻을 수 있는 이유?
+shared CPU pool은 노드의 모든 CPU resource MINUS --kube-reserved 와 --system-reserved.
+
+Guaranteed는 static CPU management policy를 통해 exclusive use of CPU를 할 수 있다.
+
+best effort pods는 kubernetes scheduler가 어떻게 관리할까?
+얘네들은 사용가능한 resource를 다 쓰고 싶어하기 때문에, this can at times lead to resource contention with other pods, where BestEffort pods hog( 자신만을 위해서 다 쓰는) resources and do not leave enough resource headroom(여유분) for other pods to consume resources within resource limits.
+
+Bustable QoS class를 가지는 pods들 ( 2번째 priority) 과 같이, BESTEFFORT pods also run in the shared resources pool on a node and cannot be granted exclusive CPU resource usage.
+
+이걸 evict 하는 것은 kubelet이야. pod의생성과 제거를 담당하는 kubelet.
 
 
+DevOps(development and operation 하는사람들) can specify thresholds for resources which when breached(break through(into)) trigger pod evictions by the Kubelet.
+그니까 개발쪽에서 언제 eviction trigger 할지 한계선을 정할 수 있다는 거네.
+QoS class of a pod does affect the order in which it is chosen for eviction 
+\
+ QOS class 는 eviction될때 순서에 영향을 미친다. kubelet은 BestEffort 와 Burstable pods using resources above requests 인 애들을 먼저 evict 한다. 각 pod 에 주어진 priority와 amount of resources being consumed above request. 
+ 
+ ```
+ 이쯤에서 원론으로 돌아가서, 생각해보면,
+ best-effort service 두개가 있다고 할 때 cpu를 건네주는 방식의 차이는 결국 
+ CFS quota 인 것이다. 결국 scheduling을 어떻게 하느냐에 달려있는 문제가 된 것이다
+ HPA쪽이 아니라. 
+ ```
+ 아 어쨌던, oom_killer는 memory 넘칠때 killer인데, memory usage별로 oom_score을 매겨서
+ qos class 더 좋은게 있더라도 kill될수도 있다. 
+ 
+ Resource manage에는 Cgroup이 관여한다.
+ Pod A, Pod B, Pod C 와 같이 pod 단위의 Cgroup이 존재하고, cgroup 아래에는
+ 각각 pod 에 속한 App container의 Cgroup과 Pause Container의 Cgroup이 존재한다.
+ 
+ Cgroup의 CPU Quota
+ ```
+ (cfs_quota_us / cfs_period_us) * 1000 = Limit milicpu
+(150000 / 100000) * 1000 = 1500 milicpu
 
+[공식 1] CPU Quota 계산 01
+(milicpu / 1000) * cfs_period_us = cfs_quota_us
+0.5 * 100000 = 50000
 
+[공식 2] CPU Quota 계산 02
 
+ CPU Limit 값은 Linux에서 Process의 CPU Bandwidth를 제한하는데 이용되는 Cgroup의 CPU Quota를 설정하는데 이용된다. CPU Quota는 cfs_period_us와 cfs_quota_us라는 두개의 값으로 조작된다. cfs_period_us은 Quota 주기를 의미하고 Default 값은 100000이다. cfs_quota_us은 Quota 주기동간 최대 얼마만큼 CPU를 이용할지 설정하는 값이다. cfs_quota_us값을 150000으로 설정하면 [공식 1]에 의해서 Container는 최대 1500milicpu만 이용 할 수 있다.
 
+설정할 수 있는 최대 CPU Limit 값은 Container가 동작하는 (v)CPU의 개수에 의해 제한된다. Container가 동작하는 Node에 4 (v)CPU만 있다면 Container에게는 최대 4000milicpu까지만 할당할 수 있다. [공식 1]을 이용하여 [공식 2]를 만들 수 있다. [공식 2]는 Kubernetes에서 CPU limit에 따라서 cfs_quota_us 값을 계산하는 방법을 나타낸다. cfs_period_us 값은 무조건 Default 값인 100000을 이용한다. 만약 CPU limit를 500milicpu를 설정하였다면 [공식 2]에 의해서 cfs_quota_us값은 50000이 된다.
 
+(Request milicpu / Node Total milicpu) * 1024 = shares
+Contaier A : (1500 / 2000) * 1024 = 768
+Contaier B : (500 / 2000) * 1024 = 256
+```
+이 위에가 CPU weight 계산인데 [공식3] 
+```
+ CPU Request 값은 Linux에서 Process의 Scheduling 가중치를 주는데 이용되는 Cgroup의 CPU Weight를 설정하는데 이용된다. Cgroup에서 CPU Weigth는 shares라는 값으로 조작된다. Process A는 1024 shares를 갖고 있고, Process B는 512 shares를 갖고 있다면 Process A는 Process B보다 2배 많은 CPU Bandwith를 이용할 수 있게 된다. CPU Weight와 Kubernets의 Pod Scheduling을 이용하면 Container가 요구하는 CPU Request 값을 Container에게 제공할 수 있다.
+
+2000 milicpu (2 CPU)를 갖고 있는 Node에 Container A는 1500 milicpu를 Request로 요청하고 Container B는 500 milicpu를 Request로 요청한다고 가정한다면, Container A와 Container B의 Weight의 비율은 3:1만 충족시키면된다. 비율을 적용하는 기준값은 shares의 기본 값인 1024를 이용한다. 따라서 Container A의 shares 값은 768이 되고 Container B의 shares 값은 256이 된다. shares 값은 [공식 3]을 통해서 계산할 수 있다
+```
+
+ 
