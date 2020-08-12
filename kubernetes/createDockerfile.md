@@ -316,7 +316,7 @@ kubectl get nodes --no-headers | awk '{print $1}' | xargs -I {} sh -c 'echo {}; 
 ```
 https://dzone.com/articles/kubernetes-resource-usage-how-do-you-manage-and-mo 
 
-
+________________
 우리가 만든게 overcommitted 한 상태인데, 
 https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/pod-priority-api.md
 의 priority에 따라 결정된다. 
@@ -326,3 +326,95 @@ https://github.com/kubernetes/community/blob/master/contributors/design-proposal
 non-urgent면 기다릴 수 있는 거지.
 Cluster management는 그런 workloads를 구분하고, 어떤게 acquire the resource 해야 하고 어떤게 기다릴 수 있는지 구분해야한다.
 클러스터에 제공할 key metric 중 하나이다. priority가. 
+
+lower priority pods 는 higher priority pods 에게 preempted 될 가능성이 높다.
+cluster가 threshold에 닿았을 때. 이럴 때엔, scheduler은 higher priority pending pods
+를 위해 lower priority pods 를 preempt 하고자 한다.
+물론 다른 여러 parameter가 있다. affinity나 anti-affinity. lower priority pods 가 preempted 되도 high priority pod가 schedule 되지 못한다고 스케줄러가 판단하면, preempt하지 않는다. scheduler는 다른 restrictions도 있다. 만약 pod disruption budger이 violate된다면 pod를 preempt하지 않을 것이다. PodSpec 이라는 struct에 priority값을 가진다. PriorityClassName (specified by user), Priority ( populated by Kubernetes). User specified is a string and all valid priority classes are mapped their string with interger values. PriorityClassName이 empty 면 default priority. 
+물론 system priority class들을 위한 system priority class names도 있어.
+any priority above 1 billion is reserved for system use. 
+``` bash
+system  2147483647 (int_max)
+tier1   4000
+tier2   2000
+tier3   1000
+```
+tier1이 가장높은 priority. 
+
+### resource QOS(Quality Of Service) in Kubernetes
+https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/resource-qos.md#qos-classes
+
+pods 들의 request에 따라서 different level of QOS. 
+request == limit 이면 resources are guaranteed. 
+request < limit : pod is guaranteed the request but can opportunistically scavenge the difference between request and limit if they are not being used by other containers. This allows kubernetes to oversubscribe nodes. (utilization을 늘리게 허용한다 limit까지) 
+
+#### requests and limits
+
+for each resource, containers can specify a resource request and limit,
+0 <= request <= Node Allocatable & request <= limit <= Infinity
+
+kube-reserved 와 system-reserved 자원 양은 
+/etc/origin/node/node-config.yaml 파일에 있다.
+```
+[Allocatable] = [Node Capacity] - [kube-reserved] - [system-reserved]
+```
+이니까
+<https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/resources.md>
+kubernetes schedulers들은 sum of the resources allocated to its pods never exceeds the usable capacity of the node. ( pod가 node에 fit 할지 테스트 하는 feasibility checking) 
+
+우리가 yaml파일에서 말하는 spec은 desired state를 뜻한다. 
+우리가 yaml파일에서 말하는 status 는 current state이다. 
+```
+Excess CPU resources will be distributed based on the amount of CPU requested. For example, suppose container A requests for 600 milli CPUs, and container B requests for 300 milli CPUs. Suppose that both containers are trying to use as much CPU as they can. Then the extra 100 milli CPUs will be distributed to A and B in a 2:1 ratio (implementation discussed in later sections).
+Pods will be throttled if they exceed their limit. If limit is unspecified, then the pods can use excess CPU when available.
+```
+pod는 kubelet이 들여오고 scheduler 가 schedule 한다. based on the sum of requests of its containers. Scheduler와 kubelet이 ensure that
+sum of requests of all containers is within the node's allocatable capacity.
+##### QoS classes
+<https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/resource-qos.md#qos-classes>
+overcommitted system( sum of limits > machine capacity) 에서
+containers might eventually have to be killed. 
+그럼 덜 중요한 컨테이너를 kill 해야겠지. 
+각 리소스별로, container들을 3가지 QoS class로 분류한다.
+1. Guaranteed,2 Burstable, and 3 Best-Effort.
+
+Requests and Limits와 QoS class 사이의 관계는 미묘하다. (적다.)
+이론적으로는, policy of classifying pods into QoS classes is orthogonal to the requests and limits specified for the container. 
+서로 상반된다는 말인가보다.
+Hypothetically, users could use an API to specify whether a pod is guaranteed or best-effort. ( 나중에는)
+어찌되었던, 지금은, pod를 QoS class로 분류하는 것은 tied to "Requests and Limits" . QoS는 memory guarantee를 위해 만들어지긴 했다.
+
+
+Pod는 3개의 다른 class 중 하나가 될 수 있다.
+limits 와 requests (얘는 있어도 되고 없어도 되고)  가 set for all resources across all containers and they are qeual, pod is classified as **Guaranteed.** (보장..)
+
+Requests 와 limits(얘는 있어도 되고 없어도 되고) 가 set for one or more resources and they are not equal, pod is **burstable**.(원하면 CPU를 더 가져간다!) 
+limit이 specified 되지 않으면 node capacity만큼이다. 
+
+request와 limit이 not set이면 **best-effort** 로 분류돼.( 새거가 들어오면 기꺼이 내주지 & CPU guarantee가 맞지 않으면 pods가 killed 되는거.)
+
+
+
+best effort pod: 가 lowest priority 그래도 노드에 있는 만큼의 resource사용가능
+
+guaranteed pods: top-priority and guaranteed to not be killed until they exceed their limits. 자기보다 lower priority만 먼저 죽이도록 되어있다.
+
+Burstable pods: minimal resource guarantee( requests만있어) 가지고 있어,
+can use more resources when available. 이런 container은 best effort pod가 없을  때 killed 되는 victim이 된다. 
+
+
+Out Of Memory score 이 있네 높을수록 kill
+
+Swap off 하는 이유가 이 QOS때문이라고. 
+swap space 때문에 memory가 threshold에 부딪혔을 때 다른 현상이 발생가능
+
+
+
+
+
+
+
+
+
+
+
