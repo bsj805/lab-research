@@ -709,3 +709,43 @@ millisecond 단위로
  16 ?>  
  ```
  실행시간 측정.
+
+
+다시 
+<https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/>
+이야기로 돌아와서
+![](https://d33wubrfki0l68.cloudfront.net/56f482ad2c6a748a342f1d734aaa86c7e63030ff/85c8e/images/blog/2018-07-24-cpu-manager/cpu-manager-anatomy.png)
+
+CPU manager의 구조는 위와 같다.
+CPU manager은 Container Runtime Interface의 UpdateContainerResources method를 써서 
+modify the CPUs on which containers can run. container에서 돌릴 수 있는 CPU를 modify?
+
+The manager periodically reconciles the current State of the CPU resources of each running container with cgroupfs.
+
+The Static policy allocates exclusive CPUs to pod containers in the Guaranteed QoS class which request integer CPUs. On a best-effort basis, the Static policy tries to allocate CPUs topologically in the following order:
+```
+Allocate all the CPUs in the same processor socket if available and the container requests at least an entire socket worth of CPUs.
+
+Allocate all the logical CPUs (hyperthreads) from the same physical CPU core if available and the container requests an entire core worth of CPUs.
+
+Allocate any available logical CPU, preferring to acquire CPUs from the same socket.
+```
+이 순서대로 cpu를배정하게 된다는 것 같은데.
+
+static policy로 (guarantee QOS로) 배정하면 그 workload는 더 잘 perform할 거야.
+
+왜냐
+```
+1. Exclusive CPUs can be allocated for the workload container but not the other containers. 
+다른 컨테이너와 CPU resource를 share 하지 않아. aggressor( 다른 워크로드 공격하는) 이나 co-located workload( 공존하는) 가 involved
+2. interference가 덜하다. CPU를 partition 해서 workload를 각각에 둘 수 있기 때문에. cache hierarchies 나 memory bandwith 같은 것도 포함
+3. CPU manager allocates CPUs in a topological order on a best-effort basis.
+만약 모든 cpu socket 이 free 라면 CPU manager은 exclusively allocate the CPUs from the free socket to the workload. 이게 cross-socket traffic을 피하면서 workload의 performance를 늘려.
+4. containers in Guaranteed Qos pods are subject to CFS Quota. Very bursty workloads may get scheduled, 그리고 그들에게 주어진 quota(할당량을) 다 태우고, period 의 끝에선 throttle될 거야.
+이 시간동안, 그 CPU가지고 할 만한 meaningful 한 일이 있을 것이다. 왜냐하면, CPU quota and number of exclusive CPUs allocated by the static policy , 어차피 static policy로 배정된 친구들은 not subject to CFS Throttling. (quota가 equal to the maximum possible cpu-time over the quota period)
+```
+<https://m.blog.naver.com/PostView.nhn?blogId=alice_k106&logNo=221633530545&proxyReferer=&proxyReferer=https:%2F%2Fwww.google.com%2F>
+
+cgroup의 CPU Share는 현재 생성되어 있는 컨테이너들이 Share 값의 비율에 따라 호스트의 CPU를 CFS 방식으로 나눠서 사용하는 기능이다. 예를 들어 100개의 CPU가 존재하는 서버에서 A 컨테이너가 512, B 컨테이너가 1024 Share 값을 가진다면 각 컨테이너가 전체 CPU를 1:2 의 비율로 나눠 쓰게 된다. 즉, 각 컨테이너가 33.3개 : 66.6개를 사용할 수 있는 셈이다.
+쿠버네티스에서 CPU Request를 포드에 할당하면 기본적으로 cgroup의 CPU Share를 사용하도록 설정된다. 그런데 CPU Share는 CPU Share Pool에서 해당 비율 만큼의 CPU 사이클을 사용할 수 있을 뿐, 포드가 특정 CPU를 배타적으로 사용하는 것을 보장하지는 않는다. 이게 무슨 뜻이냐면, CPU Share는 전체 CPU에서 사용할 수 있는 비율을 설정하는 것은 맞지만 그 CPU 사이클이 여러 CPU에 걸쳐서 처리될 수도 있다는 것을 의미한다. 예를 들어, CPU의 Limits 및 Request가 0.5인 포드에서 stress로 CPU 부하를 주면 아래 그림과 같이 여러 CPU에 걸쳐서 처리될 수도 있다.
+![image](https://user-images.githubusercontent.com/47310668/90138061-62842a00-ddb1-11ea-8c77-3aabc833e112.png)
