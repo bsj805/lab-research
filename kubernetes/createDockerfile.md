@@ -642,3 +642,36 @@ small.txt~ 시리즈는 best effort small-apache pod에 로드를 가할 때 응
 
 first experiment 폴더에 넣어놓겠다.
 
+
+다음실험을 진행하기에 앞서, 모든 파드가 7200초에 꺼지니까 불안하다.
+고로 reset을 한번 시키고 했으면 좋겠는데.
+kubectl get pods 보니까 5시간 16분째라고 한다. 일단 45분내로 한번 끝내면될듯
+
+
+우선 git에 업로드하려면
+
+git init을 통해 새로운 로컬 repository를 지정해줘야한다.
+git add를 통해 변경된 파일을 storage에 추가하고
+git commit을 통해 add한 파일을 local repository에 저장
+git push를 통해 local repository를 remote repository에 업로드 
+
+1. 원하는 폴더로 가서 git init.
+2. git status로 어떤 게 repository와 다른지 알 수 있어.
+3. sudo git remote add origin https://github.com/bsj805/lab-research.git 와 같이 origin이라는 별명으로
+repository에 등록을 하고. 
+4. git add . 을 통해서 버전 관리할 파일들을 추가해. .을 arg로 넣은 것은 현재 디렉토리
+5. sudo git pull -f origin master 로 다운로드 (pull, 끌어오고) 
+6. sudo git commit -m "메세지 내용"
+7. git push origin master  ( origin은 repository 별명, master는 branch이름) 
+이러면 username과 비번치라하는데 bs@gm Q~
+하면 된다.
+
+
+나중에는
+
+git add .
+git commit -m "메세지 내용"
+git push origin 브랜치이름
+만 해도 된다고 한다.
+
+
