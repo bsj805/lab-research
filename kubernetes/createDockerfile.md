@@ -675,3 +675,37 @@ git push origin 브랜치이름
 만 해도 된다고 한다.
 
 
+```bash
+
+while true; echo -n $(date +"%T") "  " >> /hostpath/result.txt ; do wget -q -O- http://php-apache.default.svc.cluster.local >>/hostpath/result.txt; done
+while true; echo -n $(date +"%T") "  " >> /hostpath/result2.txt ; do wget -q -O- http://php-apache.default.svc.cluster.local >>/hostpath/result2.txt; done
+while true; echo -n $(date +"%T") "  " >> /hostpath/result8.txt ; do wget -q -O- http://php-apache.default.svc.cluster.local >>/hostpath/result8.txt; done
+while true; echo -n $(date +"%T") "  "  ; do wget -q -O- http://php-apache.default.svc.cluster.local ; done
+
+while true; echo -n $(date +"%T") "  " >> /hostpath/small5.txt ; do wget -q -O- http://small-apache.default.svc.cluster.local >>/hostpath/small5.txt; done
+while true; echo -n $(date +"%T") "  " >> /hostpath/small1.txt ; do wget -q -O- http://small-apache.default.svc.cluster.local >>/hostpath/small1.txt; done
+while true; echo -n $(date +"%T") "  " >> /hostpath/small2.txt ; do wget -q -O- http://small-apache.default.svc.cluster.local >>/hostpath/small2.txt; done
+while true; echo -n $(date +"%T") "  " >> /hostpath/small3.txt ; do wget -q -O- http://small-apache.default.svc.cluster.local >>/hostpath/small3.txt; done
+
+```
+index.php는 
+millisecond 단위로
+```
+  1 <?php                                                                                              
+  2     date_default_timezone_set('Asia/Seoul');                                                       
+  3     #$now =new DateTime();                                                                         
+  4     #$now = explode(' ',microtime());                                                              
+  5     #$bef = floor(($now[0] + $now[1])*1000);                                                       
+  6     $start = microtime(true);                                                                      
+  7                                                                                                    
+  8     $x = 0.0001;                                                                                   
+  9     for ($i = 0; $i <= 10000000; $i++) {                                                           
+ 10         $x += sqrt($x);                                                                            
+ 11     }                                                                                              
+ 12     #$diff =new DateTime();                                                                        
+ 13     #$sum = $diff->getTimestamp() - $now->getTimestamp();                                          
+ 14     echo (microtime(true) - $start);                                                               
+ 15     echo " OK!";                                                                                   
+ 16 ?>  
+ ```
+ 실행시간 측정.
