@@ -593,3 +593,52 @@ response time graph가 필요해~
 그렇다면 지금 best effort 끼리는 cpu를 나눠갖고있는데 우리의 의문점은 이미 solved되어 
 있는 것이 아닌가?
 
+<https://bcho.tistory.com/1259> <https://nirsa.tistory.com/156> <- 더 자세한설명
+이 글을 보고 hostPath 라는 yaml 파일을 만들어서 하자.
+
+아 그리고 생성되는 자료는 hulkbuster node에 위치한다는 점.
+<https://medium.com/coinone-official/%EC%A2%8C%EC%B6%A9%EC%9A%B0%EB%8F%8C-kubernetes-%EC%9D%B5%ED%9E%88%EA%B8%B0-3-5d6cd6b6b1d0>
+
+결국 문제는 busybox 자체만 실행시켰을 때는 시킨 일이 없으니 0초만에 끝나버리는거.
+그래서 sleep command를 주고 
+```bash
+kubectl exec -it hostpath-pod -- bin/sh
+```
+
+로 한 다음 /hostpath에 vi test.txt를 생성하니
+hulkbuster desktop 에서 yaml 파일 아래에 기재한 내용 에 따라
+
+```bash
+1 apiVersion: v1                                                                                                                                                                                                                          
+  2 kind: Pod                                                                                                                                                                                                                               
+  3 metadata:                                                                                                                                                                                                                               
+  4   name: hostpath-pod                                                                                                                                                                                                                    
+  5 spec:                                                                                                                                                                                                                                   
+  6   containers:                                                                                                                                                                                                                           
+  7   - name: hostpath-pod                                                                                                                                                                                                                  
+  8     image: busybox                                                                                                                                                                                                                      
+  9     command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600 ']                                                                                                                                                                      
+ 10     volumeMounts:                                                                                                                                                                                                                       
+ 11     - mountPath: /hostpath                                                                                                                                                                                                              
+ 12       name: hostpath-volume                                                                                                                                                                                                             
+ 13   volumes:                                                                                                                                                                                                                              
+ 14   - name: hostpath-volume                                                                                                                                                                                                               
+ 15     hostPath:                                                                                                                                                                                                                           
+ 16       path: /home/byeon/kube/testphp2/results  # 해당 디렉토리가 존재해야 합니다.                                                                                                                                                       
+ 17       type: DirectoryOrCreate                                                                                                                                                                                                           
+~                                         
+```
+와 같이 hostPath의 경로에 저장이 되어있었다.
+컨테이너의 /hostpath에 텍스트파일을 생성했더니.
+
+<https://itlove.tistory.com/1710> 를 참고해서 php에서 milisecond를 잴 수 있고, 
+<https://victorydntmd.tistory.com/53>를 참고해서 github에 엑세스했다
+best effort 자료는 office cloud에 자동저장시켜놨고,
+ppt에 어떤 것을 실험하는 것인지 써 놓았다.
+
+result.txt, result2.txt는 best effort php-apache 서비스에 로드를 가할 때 응답시간을 시간순으로 적어놓은 문서이다.
+
+small.txt~ 시리즈는 best effort small-apache pod에 로드를 가할 때 응답시간을 시간순으로 적어놓은 문서이다.
+
+first experiment 폴더에 넣어놓겠다.
+
