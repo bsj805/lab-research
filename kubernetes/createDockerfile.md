@@ -749,3 +749,85 @@ static policy로 (guarantee QOS로) 배정하면 그 workload는 더 잘 perform
 cgroup의 CPU Share는 현재 생성되어 있는 컨테이너들이 Share 값의 비율에 따라 호스트의 CPU를 CFS 방식으로 나눠서 사용하는 기능이다. 예를 들어 100개의 CPU가 존재하는 서버에서 A 컨테이너가 512, B 컨테이너가 1024 Share 값을 가진다면 각 컨테이너가 전체 CPU를 1:2 의 비율로 나눠 쓰게 된다. 즉, 각 컨테이너가 33.3개 : 66.6개를 사용할 수 있는 셈이다.
 쿠버네티스에서 CPU Request를 포드에 할당하면 기본적으로 cgroup의 CPU Share를 사용하도록 설정된다. 그런데 CPU Share는 CPU Share Pool에서 해당 비율 만큼의 CPU 사이클을 사용할 수 있을 뿐, 포드가 특정 CPU를 배타적으로 사용하는 것을 보장하지는 않는다. 이게 무슨 뜻이냐면, CPU Share는 전체 CPU에서 사용할 수 있는 비율을 설정하는 것은 맞지만 그 CPU 사이클이 여러 CPU에 걸쳐서 처리될 수도 있다는 것을 의미한다. 예를 들어, CPU의 Limits 및 Request가 0.5인 포드에서 stress로 CPU 부하를 주면 아래 그림과 같이 여러 CPU에 걸쳐서 처리될 수도 있다.
 ![image](https://user-images.githubusercontent.com/47310668/90138061-62842a00-ddb1-11ea-8c77-3aabc833e112.png)
+
+<https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/>
+#### topology manager.
+
+Kube에서 CPU와 Device manager은 make resource allocation decisions independently of each other( 즉 PCIE쪽이나 cpu쪽은 서로 isolated decision) 
+그러면 multiple socketed system에서 performance/latency sensitive applications will suffer due to these undesirable allocations.
+여기서의 undesirable 이라함은, CPU와 device가 being allocated from different NUMA Nodes -> incurring additional latency.
+(같은 지역메모리를 사용하는 CPU 코어들을 묶어서 하나의 NUMA 노드로 치는 것) 같은 NUMA 내에서 배치하면 latency가 적겠지.
+
+Topology Manager은 kubelet component 야. POD 관리하는 애의 구성요소 인거지.
+다른 kubelet components가 can make topology aligned resource allocation choices. 
+
+Topology Manager provides an interface for components called Hint Providers to send and receive topology information. T
+Topology Manager has a set of node level policies.
+
+Topology manager가 receive Topology information from the Hint providers as a bitmask denoting NUMA Nodes available and a preferred
+allocation indication. 
+
+Topology manager은 Hint provider로부터 Topology information을 받아서 bitmask로 NUMA Node가 어떤 게 사용가능하고 어떤게 preferred allocation indication인지 알려준다. The Topology Manager policies perform a set of operations on the hints provided andconverge on the hint determined by the policy to give the optimal result. 
+
+현재 Topology Manager은 
+```
+1. Aligns Pods of all QoS classes
+
+2. Aligns the requested resources that Hint Provider provides topology hints for.
+
+support 4 policy.
+none (default)
+best-effort
+restricted
+single-numa-node
+
+```
+
+best effort policy 면 kubelet은 각 pod 내 container 들에 대해, 그들의 resource availabilty를 판단하기 위해 각 컨테이너마다 
+hint provider을 call 하고, 이 information을 이용해서 topology manager은 stores the Preferred NUMA Node affinity for that container.
+만약 affinity가 not preferred라도, 그냥 저장함.
+Hint provider은 이런 정보를 사용해서 resource allocation decision 해.
+
+restricted policy는
+한 pod 내 각 컨테이너들에 대해, kubelet은 restricted topology management policy로, Hint Provider을 부러서, discover the resource availabilty.
+
+이 정보를 이용해 Topology Manager은 stores the preferred NUMA Node affinity for that container. 만약 affinity가 not preferred 라면 Topology Manager은 그냥 이 pod을 reject 할 것.
+
+
+
+이제 cpu 나눠주는 순서는 먼저 
+shared ppol이 있겠지. 먼저 kube-reserved 와 --system-reserved 들이 먼저 cpu resource를 reserve 한 다음
+,guaranteed pod 가 remove their requested integer CPU quantities from the shared pool.
+이제 그다음에
+best effrot and Burstable pods use remaining CPU pool. Their workload may context switch from time to time.
+
+<https://builders.intel.com/docs/networkbuilders/cpu-pin-and-isolation-in-kubernetes-app-note.pdf>
+Under normal circumstances, the kernel task scheduler will treat all CPUs as available for scheduling process threads and regularly
+preempts executing process threads to give CPU time to other applications. 
+. This results in more deterministic
+behavior due to reduced or eliminated thread preemption and maximizing CPU cache utilization.
+즉, 다른 (static으로 cpu를 주는게 아니라면) thread preemption이 발생한다는 것. thread preemption을 찾아보면 될 것 같은데.
+
+<https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/>
+
+만약 pod가 생성되면 그 request에 맞는 노드에 schedule되야 하는데, 만약 no node satisfy the requirements, preemption logic이 trigerred for
+pending pod. 만약 우리가 P를 schedule 하고 싶은데, P보다 낮은 priority의 Pods를 지우는 것이 P가 그 node에 schedule 되게 하는 것이 되는 경우를 찾으려고 한다. preemption logic이. 그런 노드가 찾아지면 one or more lovwer priority pods get evicted from the node.
+
+PodDisruptionBudget은 application owners to limit the number of pods of a replicated application that are down simulateneously from
+voluntary disruptions . 그니까 자주 종료되는 pod 에게 app의 pod limit을 건다? scheduler은 PDB가 preemption에 의해 violated 되지 않도록 한다. 그러나 만약 그런 victims 가 not found라면 PDB가 violate 되더라도 종료될 것이다. ( PDB는 일정수만 유지해줘 제발~ 부탁하는거)
+
+
+<https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler>
+VPA는 over-requesting resource하는 pod를 downscale 하거나, under-requesting 하는 pod를 upscale 할 수 있어.
+
+
+![image](https://user-images.githubusercontent.com/47310668/90214622-13330d80-de34-11ea-8d3a-57a029f5bc24.png)
+이걸 보면 알다시피, two best effort 면 CFS에 의해 관리될것,
+![image](https://user-images.githubusercontent.com/47310668/90214805-a2d8bc00-de34-11ea-90f3-c9cebd404910.png)
+
+gets more workload-> gets more cpu time
+
+
+회의록:
+
+50퍼넘어가면 성능이떨어지던문제 -> BIOS 하이퍼쓰레딩문제일거야.
