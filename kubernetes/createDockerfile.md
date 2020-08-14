@@ -828,14 +828,46 @@ VPA는 over-requesting resource하는 pod를 downscale 하거나, under-requesti
 gets more workload-> gets more cpu time
 
 
-회의록:
+#### 회의록:20200814
 
 50퍼넘어가면 성능이떨어지던문제 -> BIOS 하이퍼쓰레딩문제일거야.
 하이퍼쓰레딩 끈 채로 원래대로 테스트
 그래프 만들때에는 각각 따로 만든다음에 ctrl+c v 로 합쳐 그럼합쳐지네 ㅋㅋ
-
+그리고 burstable도 혹시 best effort와 같이작동하는지?
+그리고 hpa로 만들때 limit을 100씩 정하고 해보고 500씩 정하고 해보고,
+hpa로 나눠진 각각의 pod의 limit은 어떻게 되는 것인가.
 그리고 php에서 thread 100개만들어서 동시에 실행시키는 작업을 해보자.
 
 또 매우 오래걸리는 작업 하나를 만들어서 그게 실행되는 중에 (로드도 있어야겠지)
 다른 small task 하나 실행시켜서 그게 혹시 preemption이 일어나는지 체크해보자.
 
+``` python
+
+  1 import wget                                                 
+  2 import requests                                             
+  3 import time                                                 
+  4 import sys, getopt                                          
+  5                                                             
+  6 def main(argv):                                             
+  7                                                             
+  8     FILE_NAME =argv[0] #reqnum.py                           
+  9     RESULT_FILENAME = ""                                    
+ 10                                                             
+ 11     url = "http://10.244.1.4:80"                            
+ 12     print(argv[1])                                          
+ 13     while(True):                                            
+ 14         #wget.download(url,out="result.txt")                
+ 15         now= time.localtime()                               
+ 16         response = requests.get(url);                       
+ 17         print("%02d:%02d:%02d "%(now.tm_hour,now.tm_min,now.    tm_sec)+response.text,end='')                               
+ 18                                                             
+ 19 #이름으로 실행된 경우 실행된다. 모듈로임포트할떄를 명시.    
+ 20 if __name__ == '__main__':                                  
+ 21     main(sys.argv)       
+ ```
+저 url은 kubectl get pods -o wide 로 나오는 주소이고 (pod 의 ip) 
+kubectl get service 나 describe service에서 얻은 pod의 포트로 엑세스한다.
+이건 클러스터 외부에서 .py파일을
+python3 pyprac/reqnum.py hi 를 실행시킨 것으로 
+argv[1]을 필요로 하기 때문에 hi를 넣지 않으면 실행되지 않는다.
+ 
