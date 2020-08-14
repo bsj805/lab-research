@@ -871,3 +871,34 @@ kubectl get service 나 describe service에서 얻은 pod의 포트로 엑세스
 python3 pyprac/reqnum.py hi 를 실행시킨 것으로 
 argv[1]을 필요로 하기 때문에 hi를 넣지 않으면 실행되지 않는다.
  
+qos enforcement라고 하네.
+request와 limit이 각 container단위야. pod레벨에서 하는게 아니라.
+또 read only라서 바꿀 수 없어. recreation 되어야 해. <http://bit.ly/2ExayUD>
+sysctls는 ? <https://bit.ly/2HRbqAK>
+IO/NET Bandwith 관련? 등등 <https://www.youtube.com/watch?v=8-apJyr2gi0>
+requests are ommitted -> request==limits
+
+sizing이나 이런거는 namespace resource sharing은 없어. 이쪽 네임스페이스 (limit range)에서 다른 네임스페이스로 자원이동불가
+static partitioning.
+
+How QoS Affects Scheduling
+allocatable resources를 Scheduler가 tracks. (NODEINFO CACHE) 
+internals : <http://bit.ly/2yRHTGo>
+
+How QoS affects shceduling.
+resource request를 보고, allocatable resources를 보고 never overcommit resources. 
+
+daemonsets are not scheduled by kube-scheduler.
+
+HOW QoS is enforced at the Node
+Cgroups are used to map Pod CPU and MEMORY RESOURCES
+Two Cgroup drivers exists( cgroupfs[default], systemd]) 
+![image](https://user-images.githubusercontent.com/47310668/90227146-0ec81e00-de4f-11ea-91ff-0851fe157cf2.png)
+
+kubelet translates actual cgroups
+
+/sys/fs/cgroup/cpu/kubepods/pod8d69938d- - - - / cpu.{shares.cfs_*) or /memory.limit_in_bytes
+
+![image](https://user-images.githubusercontent.com/47310668/90227371-66668980-de4f-11ea-8efd-2042d98f0a02.png)
+
+CPU는 throttling 때문에 compressible.
