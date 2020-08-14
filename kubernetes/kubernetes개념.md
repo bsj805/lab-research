@@ -453,7 +453,10 @@ VPA는 반면 이런식으로 prometheus를 거치고
 kubectl describe apiservices/v1beta1.metrics.k8s.io -n kube-system
 새로운 커맨드를 배웠다.
 자꾸 이상한 10.97.123.172:443에 access하는데, 
-
+```
+byeon@kubernetes-master:~/kube/testphp3/load$ sudo rm -rf /etc/cni/net.d
+byeon@kubernetes-master:~/kube/testphp3/load$ sudo rm -rf $HOME/.kube/config
+```
 그래서 rm -rf cni 하고 rm -rf config 하고
 ```bash
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.0.17 
@@ -482,7 +485,7 @@ byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 10252 -j
 
 ```
 해놓고, 
-metric 서버 적용시켜주면 땡땡땡
+metric 서버 적용시켜주면 땡땡땡 <https://linux.systemv.pe.kr/metric-server-%EC%84%A4%EC%B9%98%ED%95%98%EA%B8%B0/>
 이제 kubectl top nodes가된다.
 
 일단 깃헙에 나와있는 VPA설명을 써보자면, 
