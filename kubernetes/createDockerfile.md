@@ -902,3 +902,14 @@ kubelet translates actual cgroups
 ![image](https://user-images.githubusercontent.com/47310668/90227371-66668980-de4f-11ea-8efd-2042d98f0a02.png)
 
 CPU는 throttling 때문에 compressible.
+
+### 2020-08-17
+
+First experiment와 second experiment는 CPU hyperthreading 때문에 제대로 된 결과를 내지 못했다.
+
+그래서 일단 일반적으로 오래걸리는 load를 만들어봐야한다.
+
+그래서 만약 preemption이 일어나는게 맞는지 확인해야한다.
+
+그래서 일단 c++ 서버를 하나 제작했다.
+이걸 컨테이너에 올리는 방법을 탐색하자.
