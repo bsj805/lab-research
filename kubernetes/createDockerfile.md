@@ -948,3 +948,8 @@ First experiment와 second experiment는 CPU hyperthreading 때문에 제대로 
 DOCKERFILE에서도 8000으로 EXPOSE 8000 포트를 노출시킨다고 해놨고,
 또 cpp-test.yaml에서도 containerport와 service의 port를 8000으로 설정해놓으니 request를 http://[cluster-ip (kubectl get service)]:8000 으로 요청하고 받아오는게 가능하다
 (그냥 일반 마스터 노드 배쉬 쉘에서)
+
+3번째 실험
+(THIRD EXPERIMENT FOLDER)
+
+CPU 부하를 늘릴때마다 어떻게 반응하는지.(정말 단순히 (쓰레드사용도없이))
