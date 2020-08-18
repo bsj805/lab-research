@@ -913,3 +913,38 @@ First experiment와 second experiment는 CPU hyperthreading 때문에 제대로 
 
 그래서 일단 c++ 서버를 하나 제작했다.
 이걸 컨테이너에 올리는 방법을 탐색하자.
+
+### 2020-08-18 
+
+첫 서버 완성. ~/cprac/server.cpp
+13.363441초의 로드가 걸렸음. ~/pyprac/reqnum.py
+
+``` python
+  1 import wget                                                                                                                                                                                                                             
+  2 import requests                                                                                                                                                                                                                         
+  3 import time                                                                                                                                                                                                                             
+  4 import sys, getopt                                                                                                                                                                                                                      
+  5                                                                                                                                                                                                                                         
+  6 def main(argv):                                                                                                                                                                                                                         
+  7                                                                                                                                                                                                                                         
+  8     #FILE_NAME =argv[0] #reqnum.py                                                                                                                                                                                                      
+  9     #RESULT_FILENAME = ""                                                                                                                                                                                                               
+ 10                                                                                                                                                                                                                                         
+ 11     #url = "http://10.244.1.5:80"                                                                                                                                                                                                       
+ 12     url= "http://localhost:8000"                                                                                                                                                                                                        
+ 13     #print(argv[1])                                                                                                                                                                                                                     
+ 14     while(True):                                                                                                                                                                                                                        
+ 15         #wget.download(url,out="",)                                                                                                                                                                                                     
+ 16         now= time.localtime()                                                                                                                                                                                                           
+ 17         response = requests.get(url);                                                                                                                                                                                                   
+ 18         print("%02d:%02d:%02d "%(now.tm_hour,now.tm_min,now.tm_sec)+response.text,end='')                                                                                                                                               
+ 19         print("")                                                                                                                                                                                                                       
+ 20                                                                                                                                                                                                                                         
+ 21 #이름으로 실행된 경우 실행된다. 모듈로임포트할떄를 명시.                                                                                                                                                                                
+ 22 if __name__ == '__main__':                                                                                                                                                                                                              
+ 23     main(sys.argv)     
+ ```
+
+DOCKERFILE에서도 8000으로 EXPOSE 8000 포트를 노출시킨다고 해놨고,
+또 cpp-test.yaml에서도 containerport와 service의 port를 8000으로 설정해놓으니 request를 http://[cluster-ip (kubectl get service)]:8000 으로 요청하고 받아오는게 가능하다
+(그냥 일반 마스터 노드 배쉬 쉘에서)
