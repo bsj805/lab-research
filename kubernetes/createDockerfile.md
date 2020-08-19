@@ -666,6 +666,10 @@ repository에 등록을 하고.
 이러면 username과 비번치라하는데 bs@gm Q~
 하면 된다.
 
+그 origin 이미 있으면 origin 삭제 (origin 지우기)  하면돼.
+``` bash
+git remote rm origin
+```
 
 나중에는
 
