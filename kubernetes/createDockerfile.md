@@ -953,3 +953,18 @@ DOCKERFILE에서도 8000으로 EXPOSE 8000 포트를 노출시킨다고 해놨�
 (THIRD EXPERIMENT FOLDER)
 
 CPU 부하를 늘릴때마다 어떻게 반응하는지.(정말 단순히 (쓰레드사용도없이))
+
+4번째 실험은
+container의 limit을 1000m, request를 200으로 잡은 burstable로 만들어서 hpa를 실행시켜보는 것. (나머지 replicaset이 형성되었지만, 새로 cpu를가져가지는 않는 모습)
+아 근데 이건 service의 IP에 보낸 게 아니라
+특정 pod에 load를 가한 것이기 ㅁ때문에 그럼.
+
+
+
+5번째 실험은
+container의 limit을 4000m, request를 200m 으로 잡은 burstable 상태에서 service의 IP에 보내보는 것, HPA작동시키기.
+이상태에서 small 하나 1000m, req 200m으로 burstable 만들고 service의 IP에 보내봐.
+
+6번째 실험은 thread 많이 만들어서 cpu 많이 쓰게해보기. 쓰레드 100개만들어서 실행시켜봄. 21초가 걸려( 0 8개로 해서 했는데도)
+thread 1000개만들어서 실행시키면.. ㅋㅋㅋㅋ kubernetes -master  cpu 사용량이 7717 96%까지올라가네
+276초 걸린다. 
