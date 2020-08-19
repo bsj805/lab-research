@@ -1,6 +1,12 @@
 
 # Kubernetes basic
 
+
+kubeadm token create --print-join-command 다시 join 시키기.
+
+이번에 해봐야될 것은, pod 10개 막 있는데에서 (HPA 에서) small load를 가했을 때의 속도와
+그냥 pod 부피늘어난상태에서의 load가했을 때에 그 속도에 차이가 있는지.
+
 ## 2020-08-10 / CNI 및 네트워크 https://sebiwi.github.io/blog/how-does-it-work-kube-2/
 
 ### 2020-08-10 회의록
