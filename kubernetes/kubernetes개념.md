@@ -480,6 +480,14 @@ sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address
 
 이걸 하고서 components.yaml에 containers 항목에서 0.3.6인거 확인하고, 
 ```bash
+iptables -P FORWARD ACCEPT
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+```
+하거나 
+(https://github.com/kubernetes/kubeadm/issues/504)
+
+```bash
 byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 6443 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
 byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT                      │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 byeon@kubernetes-master:~/metric$ sudo iptables -A INPUT -p tcp --dport 4443 -j ACCEPT                     │byeon@hulkbuster-desktop:~$ sudo iptables -A INPUT -p tcp --dport 4443 -j ACCEPT
