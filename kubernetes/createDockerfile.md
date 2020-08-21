@@ -972,3 +972,29 @@ container의 limit을 4000m, request를 200m 으로 잡은 burstable 상태에�
 6번째 실험은 thread 많이 만들어서 cpu 많이 쓰게해보기. 쓰레드 100개만들어서 실행시켜봄. 21초가 걸려( 0 8개로 해서 했는데도)
 thread 1000개만들어서 실행시키면.. ㅋㅋㅋㅋ kubernetes -master  cpu 사용량이 7717 96%까지올라가네
 276초 걸린다. 
+위까지가 
+### 2020-08-19
+______
+
+### 2020-08-21
+7번째 실험 
+하나는 60초가량 걸리는 load (multi thread로 모든 코어 잡아먹는) -> bruzn/ubuntu-cppthreadserver300 컨테이너상에선 util 100%, 85sec
+를 실행시킨채로 작은 load ( 1초정도 걸리는 기존의 cppserver) -> bruzn/ubuntu-cppthreadserver1
+bruzn/ubuntu-cpp10 은 10초정도걸리고 1000m만 잡아먹는.
+
+testphp6/BURcpp300.yaml 은 limit와 request 걸어서 HPA작동가능하게함.
+limit는 1, request는 100m.
+replica는 100개까지만들도록허용
+11:43:00에 pyprac종료
+
+자이제 
+
+2020 -08 -21 회의록
+Horizontal and Vertical Scaling of Container-based Applications using Reinforcement Learning  IEEE xplore
+
+Firecracker
+Lightweight vitrtualization for serverless Application 같은거
+
+논문리뷰하는걸로 
+
+GPU의 resource sharing 
