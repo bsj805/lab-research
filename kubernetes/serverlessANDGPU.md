@@ -125,3 +125,17 @@ http://팟이나서비스이름.default(네임스페이스영역).svc(pod이면 
 이걸 resolve host할수 없는 거구나.
 <https://jonnung.dev/kubernetes/2020/05/11/kubernetes-dns-about-coredns/> 를 참고하슈
 
+
+해당 노드에 설정되어 있는 NAT 테이블을 조회
+```
+sudo iptables -S -t nat
+```
+service들과 어떤식으로 연결되는 지 알 수 있게 해준다. 
+
+자 문제점
+
+어떻게 성능을 측정할 것인가.
+
+
+메인토픽은 pod을 컨테이너상에서 돌릴 때, 그걸 이용해서 GPU에 명령을 내리고
+그 GPU가 일을 마쳤을 때, pod에게 그 값을 전달할 때 네트워크의 full bandwith를 활용하지 못한다
