@@ -81,3 +81,54 @@ iperf3 -c 192.168.0.17 -u -b 1000m
 [  5]   0.00-10.00  sec  1.11 GBytes   951 Mbits/sec  0.010 ms  48/820782 (0.0058%)  receiver
 
 가 나온다. 
+
+
+```
+kubectl exec -it pod이름 -- bin/sh
+apt-get update
+apt-get install iperf3
+apt-get install net-tools
+
+```
+
+cppserver-1 은 10.244.1.7이란 IP쓰고있고, broadcast는 10.244.1.255 ether 주소는 (MAC은 unique하게 생성됨)
+kube master nor hulkbuster has same MAC NIC.
+
+iperf3 -c 192.168.0.17 -u -b 1000m
+
+흠 일단 UDP로 하면 full bandwith 쓸 수 있는 것 같은데,
+일단 NIC 로의 속도측정을 해보고 싶으니까.
+이걸 어떻게 알수 있을지 찾아보자.
+
+(END) 가 떠서 못 빠져나왔는데
+실행취소키로 (ctrl+z) control Z control+z 로 탈출!
+
+
+뒤에 interface 이름 넣으면 해당 NIC의 속도를 알 수 있다. 
+```
+sudo mii-tool -v enp2s0
+sudo mii-tool -l enp2s0 하면
+어떤 속도를 사용할지 알 수 있다.
+1000base T-FD 라는건 full duplex 1Gbps 란느 것 같다.
+<https://askubuntu.com/questions/1047542/why-does-ethernet-autonegotiation-selects-1000baset-hd-instead-of-1000baset-fd>
+
+kubectl logs flannel-pod-이름 -n kubesystem 해서 로그를 봤어.
+
+netstat -rn
+
+하면 라우팅 테이블이보이고,
+
+참고로 docker container 안에서 sshd를 살리고 root login을 허용하는 방법은 다음과 같습니다.
+
+root@73b40d9d2a5b:/# apt-get install openssh-server
+
+root@73b40d9d2a5b:/# vi /etc/ssh/sshd_config
+#PermitRootLogin prohibit-password
+PermitRootLogin yes
+
+root@73b40d9d2a5b:/# /etc/init.d/ssh start
+
+http://hwengineer.blogspot.com/2018/01/ppc64le-flannel-docker-container.html
+```
+
+일단 논문리딩하고오자
