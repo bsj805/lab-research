@@ -132,3 +132,10 @@ http://hwengineer.blogspot.com/2018/01/ppc64le-flannel-docker-container.html
 ```
 
 일단 논문리딩하고오자
+
+
+일단 UDP로 pod->native가 문제없는걸로봐서는
+TCP 상의 문제인 것 같은데
+<https://github.com/projectcalico/calico/issues/922>
+에 따르면 encapsulation
+
