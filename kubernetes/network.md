@@ -235,3 +235,11 @@ root@cpp-1-6f4f57c9f9-ch9td:/# while true;do iperf3 -c 10.0.0.3 -A 8,8 -V; done;
 sudo apt-get install oprofile
 ```
 nmon이라는 툴이 더좋네 ㅎ
+https://linuxhint.com/oprofile-tutorial/
+로 oprofile을 배워서 실제로 어디서 cpu를 쓰는지 보자.
+[강성민] [오후 5:45] sudo iptables -nL
+[강성민] [오후 5:45] 여기서 체인 리스트를 볼 수 있고
+[강성민] [오후 5:45] 보니까 저 nf_conntrack이 가득 차면 패킷을 드랍한다고 하는데 iptables로 notrack 옵션을 주는건 트래킹을 안 한다는 모양이에요
+라는 듯?
+
+다 /proc/net/에 있었다. nf_contrack?
