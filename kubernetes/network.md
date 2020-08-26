@@ -139,3 +139,99 @@ TCP 상의 문제인 것 같은데
 <https://github.com/projectcalico/calico/issues/922>
 에 따르면 encapsulation
 
+
+2020-08-26 
+
+오늘 드디어 어느정도 이유를 찾은 것 같다.
+<https://bugs.launchpad.net/plainbox-provider-checkbox/+bug/1584112>
+pod에서 -A 8,8 option으로 실행시키면 정상적으로 (쿠버네티스 네트워크.pptx 페이지 13) 
+bandwidth가 나온다.
+
+```
+iperf3 -c 10.0.0.3 -T s1 -p 5101 & iperf3 -c 10.0.0.3 -T s2 -p 5102 & iperf3 -c 10.0.0.3 -T s3 -p 5103
+```
+
+서버를 세개열고 이걸로해보라고하더라.(<https://github.com/esnet/iperf/issues/408>)
+일단 native-native사이에는
+3.13 3.14 3.14 gbits/sec 이나오는데,
+
+9.52 gbits/sec이나오네.
+
+pod -native사이에
+(black위 pod - white native 10.0.0.3)
+3.23 3.13 2.90  -> 6.36+ 2.90 = 9.26? 
+일단 근데 갑자기 retransmission이 많아지면서 아까와같은결과가 안나오긴하네
+
+일단 차이점은 receiver측 cpu utilization이 엄청나게 증가했다?
+
+native -native (10G)
+42.2 3.9 (receiver 즉 서버쪽이 white인경우) white의 cpu 3.9퍼래
+
+잘 안나올때:
+20.9 50.6 (white cpu 50.6%쓴다함) ret:5120
+33.2  6.1  ret:4690
+34.7  24.1 ret:2773
+33.3  12.4 ret:4693
+33.1   33.1  ret:4521
+
+udp -b 5000m -A 8,8 -V
+
+했을때
+1.64gbits/sec 
+99.9% 49.1% 
+
+iperf3 -c 10.0.0.3 -A 4,4 -V
+로 뒀을때
+5.36gbits/sec
+
+33.6 16.2 ret:3646
+
+iperf3 -c 10.0.0.3 -A 8,8 -V 로 했을때
+9.34gbits/sec
+40.9 26.7 ret:20
+
+9.35gbits/sec
+40.4  4.3  ret:30
+
+```
+root@cpp-1-6f4f57c9f9-ch9td:/# while true;do iperf3 -c 10.0.0.3 -A 8,8 -V; done;
+```
+로 했는데 kubectl top pods로 하니 400m정도밖에 소모 안하는 것 같음 (cpu를) 
+
+9.37 gbits/sec
+43.3   4.8  ret:21
+
+9.34 gbits/sec
+40.7  53.6  ret:39
+
+9.38gbits/sec
+40.4    53.4  ret:16
+
+9.38gbits/sec
+41.4    53.6  ret:40
+
+9.37gbits/sec
+
+43.0  53.6  ret:51
+
+9.38gbits/sec  
+
+43.7  53.6 ret:17
+
+9.37gbits/sec
+
+42.3 53.2 ret:18
+
+9.37 gbits/sec
+
+40.2 53.9 ret:10
+
+단순히 cpu number에 따라 결정되는 것 같다.
+어떤 cpu에서 실행되느냐의 문제인 것 같은데.
+
+일단 oprofile 설치
+
+```
+sudo apt-get install oprofile
+```
+nmon이라는 툴이 더좋네 ㅎ
