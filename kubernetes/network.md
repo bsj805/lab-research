@@ -243,3 +243,22 @@ https://linuxhint.com/oprofile-tutorial/
 라는 듯?
 
 다 /proc/net/에 있었다. nf_contrack?
+
+
+2020/08/31
+
+kubectl describe pods calico-node-9sx2w -n calico-system 
+를 통해서 보니,
+BGP가 not 활설화되어 있어서 179번 포트를 모두 열어주었다 (양쪽모두) 
+sudo iptables -A OUTPUT -p tcp --dport 179 -j ACCEPT
+```
+black@black-Z10PA-U8-Series:~$ cat /proc/modules | grep nf_conntrack
+     │nf_conntrack_netlink 45056 0 - Live 0x0000000000000000
+         │nfnetlink 16384 4 ip_set,nf_conntrack_netlink, Live 0x0000000000000000
+  │nf_conntrack 139264 6 xt_nat,ip_vs,xt_conntrack,xt_MASQUERADE,nf_conntrack_netlink,nf_nat, Live 0x0000000000000000
+       │nf_defrag_ipv6 24576 2 ip_vs,nf_conntrack, Live 0x0000000000000000
+      │nf_defrag_ipv4 16384 1 nf_conntrack, Live 0x0000000000000000
+     │libcrc32c 16384 3 ip_vs,nf_nat,nf_conntrack, Live 0x0000000000000000
+
+```
+
