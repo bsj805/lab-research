@@ -284,3 +284,42 @@ source port가 changed 되었는데
 
 __nf_conntrack_confirm()을 부를 때 패킷이 드랍되어 버려. confirm conntrack entries 해야 할때. 
 
+<https://stackoverflow.com/questions/31546835/tcp-receiving-window-size-higher-than-net-core-rmem-max/35438236>
+
+그래 결국은 window size에 limit이 걸려있으니 full bandwidth를 쓰지 못하는게 아니냐.
+
+```
+sudo sysctl -a | grep net 이거하면 
+```
+
+net.ipv4.tcp_rmem=4096    131072 6291456  -> maximum receiver window size가 6 MiB라는 것을 알 수 있다. 
+TCP는 tends to allocate twice the requested size. 그러니 max receiver window size는 3 MiB가 되어야 하는 것이 맞다.
+
+Note that TCP actually allocates twice the size of the buffer requested in the setsockopt(2) call, and so a succeeding getsockopt(2) call will not return the same size of buffer as requested in the setsockopt(2) call. TCP uses the extra space for administrative purposes and internal kernel structures, and the /proc file values reflect the larger sizes compared to the actual TCP windows.
+
+(man tcp 하면 나오는 것)
+
+그런데 net.core.rmem_max = 212992 
+을 보면 maximum receiver window size가 208 KiB를 넘을 수 없음을 알려준다. 
+according to man tcp:
+
+tcp_rmem max: the maximum size of the receive buffer used by each TCP socket. This value does not override the global net.core.rmem_max. This is not used to limit the size of the receive buffer declared using SO_RCVBUF on a socket.
+
+in void tcp_select_initial_window()
+
+```
+if (wscale_ok) {
+    /* Set window scaling on max possible window
+     * See RFC1323 for an explanation of the limit to 14
+     */
+    space = max_t(u32, sysctl_tcp_rmem[2], sysctl_rmem_max);
+    space = min_t(u32, space, *window_clamp);
+    while (space > 65535 && (*rcv_wscale) < 14) {
+        space >>= 1;
+        (*rcv_wscale)++;
+    }
+}
+```
+https://blog.cloudflare.com/how-to-achieve-low-latency/
+
+IP 에 conntrack이 관여하지않게 하는 방법이 써있는거같다.
