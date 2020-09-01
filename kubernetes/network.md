@@ -262,3 +262,7 @@ black@black-Z10PA-U8-Series:~$ cat /proc/modules | grep nf_conntrack
 
 ```
 
+```
+이걸로 네트워크 
+sudo ifconfig ens4f1 10.0.0.3 netmask 255.255.255.0 up
+```
