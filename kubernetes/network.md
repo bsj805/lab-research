@@ -266,3 +266,11 @@ black@black-Z10PA-U8-Series:~$ cat /proc/modules | grep nf_conntrack
 이걸로 네트워크 
 sudo ifconfig ens4f1 10.0.0.3 netmask 255.255.255.0 up
 ```
+pod쪽에서
+```
+iperf3 -c 10.0.0.3 -A8 -R 로 해봤는데 이걸 operf를 돌릴 수 있었어 su - 를 통해서. 그랬더니 operf를 쓰니까 4번cpu가 추가로 돌아가네. 
+```
+
+<https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1836816>
+
+를보면 nf_conntrack에서 race가
