@@ -273,4 +273,14 @@ iperf3 -c 10.0.0.3 -A8 -R 로 해봤는데 이걸 operf를 돌릴 수 있었어 
 
 <https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1836816>
 
-를보면 nf_conntrack에서 race가
+를보면 nf_conntrack에서 race가 일어난다고 하는 것 같음
+
+UDP가 connectionless니까, conntrack entry는 packet is first sent일 때까지 생성되지 않아.
+UDP packet이 같은 시간에 같은 소켓으로 다만 다른 쓰레드에서 보내진다면,
+1. 어떤 packet도 confirmed conntrack entry 를 찾지 못해서, 같은 tuple임에도 불구하고 2개의 conntrack entry가 생기게 함 
+(각각의 쓰레드가 각각 등록)
+2.  다른 패킷이 get_unique_tuple()을 호출 하기 전에 conntrack entry가 하나의 패킷에 대해 confirmed 되었어. 즉 각각의 패킷이 다른 reply를 받아
+source port가 changed 되었는데
+
+__nf_conntrack_confirm()을 부를 때 패킷이 드랍되어 버려. confirm conntrack entries 해야 할때. 
+
