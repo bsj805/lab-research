@@ -323,3 +323,29 @@ if (wscale_ok) {
 https://blog.cloudflare.com/how-to-achieve-low-latency/
 
 IP 에 conntrack이 관여하지않게 하는 방법이 써있는거같다.
+http://www.iorchard.net/2017/05/20/k8s_dns_perf_problem.html
+여기를 보면 대강 그 이유를 알 수 있는 듯 하다.
+
+즉슨, SNAT는 
+(소스 IP, 소스 포트, 목적 IP, 목적 포트)와 같이 unique tuple들로 정의된다. 이 4개의 element가 하나라도 다르면 다른 entry가 된다.
+
+ 컨테이너에서 나가는 패킷은 SNAT를 통하는데 저 소스 포트는 docker0가 만들어내는 포트들일 것이다. 이 포트가 계속 달라지기 때문에 
+ SNAT table이 꽉찬다는 것이 아닐까? conntrack table이 SNAT 정보를 저장하기 위해 만들어진다.
+ 
+ <https://www.slideshare.net/lorispack/docker-networking-101> 아예 ethernet을 내 NIC를 사용하게 하는 방법도 있다.
+ 
+ ```
+ sudo iptables -nvL -t nat
+ ```
+ nat 정보확인
+ 
+ 맨 위 PREROUTING에서 docker0 로 오는 모든 패킷이 SNAT 됨을 알 수 있다.
+ SNAT라 함은 source의 IP를 바꾸는 NAT방식을 말한다. <https://www.joinc.co.kr/w/Site/System_management/NAT>
+ 처음에 네트워크 를 public IP로 바꿔야할 때에 패킷 헤더의 source IP를 우리의 public IP로 바꿈으로써 인터넷은 아 이게 어디서 온 거구나
+ 하면서 연결할 수 있고 반대로 들어올 때에는 DNAT. desitnation을 바꾸는 거겠지. 
+ <https://brownbears.tistory.com/151>
+ 
+ 지금 저거 해서 postrouting chain에 적혀있는게 SNAT한다는 거.  172.17.0.0/16 짜리에 대해서 알아서 IP 할당해서 처리하도록 되어있다.
+ 
+ 
+ 
