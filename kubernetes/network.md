@@ -396,3 +396,18 @@ sudo tcpdump -c 30 -i ens4f1 -n 으로 해야 ip주소 잘나온다.
 ```
 <https://m.blog.naver.com/PostView.nhn?blogId=complusblog&logNo=221017570026&proxyReferer=https:%2F%2Fwww.google.com%2F>
 가 도커 네트워크에 대한 개략적인 설명을 해준다. 
+<https://bluese05.tistory.com/53>
+먼저 iptables내역을 보면, PREROUTING chain 때문에,
+Docker host에 들어온 패킷은 DOCKER chain으로 연결되고,
+
+DOCKER CHAIN에서는 만약 포트포워딩을 한 것이 있으면, 해당 ip의 해당 포트로 포워딩이 되도록 DNAT를 시킨다. 
+이런 컨테이너 관련 iptable rules는 docker daemon이 자동으로 제어하고,
+NAT를 위한 IP_forward 설정도 docker daemon에서 제어하게 된다. 
+
+<https://www.joinc.co.kr/w/man/12/docker/InfrastructureForDocker/network> masquerade 는 여기서 볼 수 있다.
+
+이렇게 마스커레이딩을 통해서 패킷의 source IP를 바꿨으면, 이 source IP가 dst IP가 되어야 하기 때문에
+Masquerade를 수행하는 운영체제들은 패킷을 추적하기 위한 connection tracking 기능을 가지고 있다. 
+
+<https://www.linuxtechi.com/capture-analyze-packets-tcpdump-command-linux/> tcpdump 정보
+
