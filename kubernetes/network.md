@@ -392,5 +392,7 @@ Maximum Transmission Unit : 물리적 전송매체에서 전송 가능한 데이
 
 ```
 sudo tcpdump -c 30 -i ens4f1 -n 으로 해야 ip주소 잘나온다. 
-```
 
+```
+<https://m.blog.naver.com/PostView.nhn?blogId=complusblog&logNo=221017570026&proxyReferer=https:%2F%2Fwww.google.com%2F>
+가 도커 네트워크에 대한 개략적인 설명을 해준다. 
