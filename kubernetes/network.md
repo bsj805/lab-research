@@ -386,9 +386,11 @@ root@server:~# ethtool -K eth0 gso off
 
 
 
+Maximum Transmission Unit : 물리적 전송매체에서 전송 가능한 데이터의 최대 단위를 말하는 것으로 최대값은 1500입니다. 단위는 Byte단위 이며 이보다 큰 파일은 MTU사이즈에 맞게 잘라서 보내게 됩니다.
 
 
 
-
-
+```
+sudo tcpdump -c 30 -i ens4f1 -n 으로 해야 ip주소 잘나온다. 
+```
 
