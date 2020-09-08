@@ -348,4 +348,47 @@ http://www.iorchard.net/2017/05/20/k8s_dns_perf_problem.html
  지금 저거 해서 postrouting chain에 적혀있는게 SNAT한다는 거.  172.17.0.0/16 짜리에 대해서 알아서 IP 할당해서 처리하도록 되어있다.
  
  
- 
+ TCPDUMP로 본 패킷이 최대크기가 1500byte여야할텐데 
+ <https://forum.ivorde.com/linux-tso-tcp-segmentation-offload-what-it-means-and-how-to-enable-disable-it-t19721.html>
+ 넘어가는이유는
+<https://packetbomb.com/how-can-the-packet-size-be-greater-than-the-mtu/>
+이 두 사이트 참고.
+
+
+
+```
+IP 1.1.1.1.31586 > 2.2.2.2.80: Flags [P.], seq 1:116, ack 1, win 4117, options [nop,nop,TS val 3052623784 ecr 303700], length 115
+```
+TCPDUMP에서 위와같은 패킷은 플래그에 [P.] 이 적혀있자나. 그러면 이건 length만큼 크기의 get request sent by browser size 115 bytes.
+즉 115 바이트 만큼 kernel 에서 application으로 stack을 푸시하라고 알리는 것. 이경우엔 2.2.2.2:80이 웹서버겠지. 거기에다 115짜리
+get request를 보내는 거야. 
+그럼 서버는 ack을 하나 empty 하게 보낸다. (server kernel 이 previous segment sent by client and next packer 이 
+server에서 cleint로 보내는 진짜 payload가 된다. 
+
+근데 length는 MTU 1500 을 넘어설 수 없다. 
+
+tcpdump는 capture packets in kernel infrastructure ( bpf filter in linux) not what it is actually sent by the network card.
+
+TSO 때문이다. 
+
+TCP segmentation offload. kernel의 cpu load를 줄이기 위함이다. 
+왜냐, 일단 TCP 연결에서는 client는 cwnd를 계산해서 최대한 보낼 수 있는 데이터를 많이 보낼 것이다.
+TCP segmentation offload는 system에게 TCP segmentation을 NIC driver에서 할 수 있게 한다. main CPU 에서 kernel을 통해서
+하는 게 아니라. 그런 경우에 cleint의 receive window는 늘어나게 된다. server의 initial send window는 10 segment였다면, kernel은 10*1460byte보다 작은 양의 버퍼를 준비할 것이다.*  kernel은 이 버퍼에 대한 정보를 전달하면서 nic driver에게 어떻게 이 큰 segment들을 seggmentation할 수 있는지에 대해서 알 수 있게 한다. 
+
+```
+root@server:~# ethtool --show-offload  eth0      (OR ethtool -k eth0) //이걸로 tcp-segmentation-offload (TSO) 켜져있는지 보고
+root@server:~# ethtool -K eth0 tso off
+root@server:~# ethtool -K eth0 gso off
+```
+이걸로 disable가능하다.
+
+
+
+
+
+
+
+
+
+
