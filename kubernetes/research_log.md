@@ -63,3 +63,51 @@ iptable에서 nat rule을 설정하면 이와 반대되는 reverse NAT는 iptabl
 ![image](https://user-images.githubusercontent.com/47310668/92718069-39e55500-f39c-11ea-80e2-4212a56a8047.png)
 아마 이거가 나오는 걸 보니
 저패킷이 저렇게 바뀌는 것이아닐까?
+
+
+sudo conntrack -L --src -nat 하면 source NAT connection을 보이는 것이라고 한다.
+```
+sudo iptables -nvL -t nat
+```
+
+Chain OUTPUT (policy ACCEPT 36 packets, 2248 bytes)                                                                                                                                          
+ pkts bytes target     prot opt in     out     source               destination                                                                                                              
+ 797K   49M KUBE-SERVICES  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kubernetes service portals */
+ 158K 9460K DOCKER     all  --  *      *       0.0.0.0/0           !127.0.0.0/8          ADDRTYPE match dst-type LOCAL
+
+이건 패킷이 나갈때 의 룰인건데, (OUTPUT)
+<https://stackoverflow.com/questions/26963362/dockers-nat-table-output-chain-rule>
+127.x.x.x 로 시작하지 않는 IP address 로 가는 패킷들은 handed over to target (DOCKER 체인) for further processing
+
+
+Chain PREROUTING (policy ACCEPT 1 packets, 102 bytes)                                                                                                                                        
+ pkts bytes target     prot opt in     out     source               destination                                                                                                              
+1336K   63M KUBE-SERVICES  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kubernetes service portals */
+ 154K 9448K DOCKER     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL 
+ 
+ prerouting도 모든패킷올때 docker chain으로보내기 인듯.
+ 
+ 봐봐.. 
+ Chain POSTROUTING (policy ACCEPT 36 packets, 2248 bytes)                                                                                                                                     
+ pkts bytes target     prot opt in     out     source               destination                                                                                                              
+1968K  102M KUBE-POSTR  all  --  *      *       0.0.0.0/0            0.0.0.0/0            /* kubernetes postrouting rules */
+ 2240  135K MASQUERADE  all  --  *      !docker0  172.17.0.0/16        0.0.0.0/0 
+ 
+ 지금 postrouting에서 docker0가 아닌 interface로 나가는 패킷은 마스커레이딩을 당해.
+ 즉슨, docker0로 가는 패킷은 source ip가 저거여도되는데 (docker 0가 172.17.0.1 이거든)
+ 근데 다른 인터페이스에서 ex) ens4f1에서 패킷이 나가는데 172.17.0.0/16 이면 안된다 이거야. 이때 NAT가 들어가는거지.
+ 이게 POSTROUTING rule.
+ 
+ <https://gist.github.com/nerdalert/a1687ae4da1cc44a437d> POSTROUTING이 뭐냐고? 이거야!
+ 
+ 
+ 자 이렇게 
+ ![image](https://user-images.githubusercontent.com/47310668/92722785-12de5180-f3a3-11ea-9395-4b168cf9cf6e.png)
+
+어떻게 docker network가 작동하는 지 알아보았습니다!
+
+이제 
+
+iperf3 의 core affinity가 어떻게 동작하는지
+
+각 코어에서 어떤 프로세스가 일어나는건지 알아볼 수있는 시간이!
