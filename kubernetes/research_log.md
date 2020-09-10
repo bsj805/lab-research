@@ -111,3 +111,106 @@ Chain PREROUTING (policy ACCEPT 1 packets, 102 bytes)
 iperf3 의 core affinity가 어떻게 동작하는지
 
 각 코어에서 어떤 프로세스가 일어나는건지 알아볼 수있는 시간이!
+
+또 반복해서 실험했을 때 특정코어는 항상 10G가 나오는 지 뭐 이런 거도 알아봐야한다!
+```
+
+sudo docker run -it bruzn/ubuntu-cppthreadserver300 bin/bash 로 실행했다.
+```
+apt-get update
+apt-get install net-tools
+apt-get install iperf3
+
+tcpdump -c 30 -i ens4f1 -N 해야지 name으로안나온다. -A였나?
+
+```
+Set the CPU affinity for the sender (-A 2) or the sender, receiver (-A 2,3), where the cores are numbered starting at 0. This has the same effect as running numactl -C 4 iperf3.
+```
+core affinity는
+numactl -C 4 iperf3  를 하는 것과 똑같다고한다.
+
+```
+man numactl
+numactl --physcpubind=+0-4,8-12 myapplic arguments Run myapplic on cpus 0-4 and 8-12 of the current cpuset.
+Only execute process on cpus.  This accepts cpu numbers as shown in the processor fields of /proc/cpuinfo, or relative cpus as in relative to the current cpuset.  You may
+              specify "all", which means all cpus in the current cpuset.  Physical cpus may be specified as N,N,N or  N-N or N,N-N or  N-N,N-N and  so  forth.   Relative  cpus  may  be
+              specifed  as  +N,N,N or  +N-N or +N,N-N and so forth. The + indicates that the cpu numbers are relative to the process' set of allowed cpus in its current cpuset.  A !N-N
+              notation indicates the inverse of N-N, in other words all cpus except N-N.  If used with + notation, specify !+N-N.
+
+```
+-C cpus 
+라고 한다.
+
+
+<https://stackoverflow.com/questions/14720332/numactl-physcpubind>
+
+top을 키고, f로 lastusedcpu항목을 키고보니까
+
+실제로 iperf3 -c 10.0.0.3 -A2 를 하면 cpu를 2번만 사용한 것 처럼 표시된다.
+networkmanager라는 프로세스가 계속 자리를 바꿔서 2.6%정도를 차지하는데 그게 nmon에서 
+그렇게 표시되는걸지도 모른다.
+그래 사실 numactl 
+
+아니면 gvfs라는 프로세스도 보이고
+tmux:server도 갑자기 차지를 많이하다가도, nmon의 부정확성일지도 모른다. ksoftirqd/8 ? 라는것도  보인다.
+
+이 ksoftirqd/0~9는 각 cpu에서만 돌아간다 즉 ksoftirqd/0은 0번코어에서만 돌아가는 애인거다. 
+http://egloos.zum.com/rousalome/v/9978671
+
+우리의 컴퓨터는 연결된 device와 IRQs (interrupt requests)들을 통해 통신한다. device에서 interrupt가 오면,
+operating system pauses what it was doing and starts addressing that interrupt. 즉 인터럽트 관리를 시작한다.
+어떤 경우에는 IRQ가 너무 빠르게 와서 다른 IRQ가 오기전에 OS가 그 이전의 IRQ를 처리하지 못하는 경우가 생긴다. 
+이것은 high speed network card 가 receives a very large number of packets in a short time frame일 때 벌어질 수 있다.
+
+OS가 IRQ들을 제때제때 handle하지 못하면 ( 다음 IRQ가 너무빨리 도착하기 때문) OS는 그들의 processing을 special internal process named
+ksoftirqd에게 맡겨버린다.
+
+흠
+확실히 native-native하면 ksoftirqd가 적고 pod-native하면 ksoftirqd가 많이 일어나.
+<https://qastack.kr/ubuntu/7858/why-is-ksoftirqd-0-process-using-all-of-my-cpu> 여기에 CPU 어떻게 하면 설정할 수 있는지에
+대해서도 나오는 것 같다. 
+
+<https://qastack.kr/ubuntu/7858/why-is-ksoftirqd-0-process-using-all-of-my-cpu>
+
+```
+cat /proc/interrupts
+```
+interrupt개수보는법. <https://forums.gentoo.org/viewtopic-t-1102698-start-0.html> <- 왜 ksoftirqd 가 network에 영향을 미치고 있는지.
+
+6번코어에서도는애들은
+cpuhp/6
+idle_inject/6
+migration/6
+ksoftirqd/6
+kworker/6:0H-kb+
+khugepaged
+kblockd
+kwapd0
+irq/31-pciehp
+scsi_eh_1
+scsi_eh_7
+systemd-udevd
+loop0
+loop5
+loop9
+nvidia-modeset/
+networkd-dispat
+polkitd
+probing-thread
+containerd (7
+dockerd *3
+
+gdbus
+gvfs-udisks2-vo
+docker-proxy
+containerd-shim
+pager
+docker
+
+coredns
+flanneld
+flanneld
+etcd
+
+
+무조건 한 코어는 그만한 속도를 내는 cpu가 있다 분명히.
