@@ -214,3 +214,12 @@ etcd
 
 
 무조건 한 코어는 그만한 속도를 내는 cpu가 있다 분명히.
+sudo ps -A -o pid,psr,comm,cpuid >> process.txt
+(<https://stackoverflow.com/questions/5732192/ps-utility-in-linux-procps-how-to-check-which-cpu-is-used> 참고)
+로 어떤 코어에서 돌리는 지 볼수있는데 (어떤 프로세스가 어떤 코어에서 도는지) 
+
+일단 
+![image](https://user-images.githubusercontent.com/47310668/92740595-d289ce00-f3b8-11ea-998a-4ac48ff12707.png)
+이중 하나랑 같은 코어에서 돌아가니까 그런게 아닐까?
+
+먼저 (sd-pam)은 systemd --user 의 child인건데, 
