@@ -29,6 +29,7 @@ iptables --list-rule
 
 forward 룰을 보다보면, 어떤식으로 패킷을 받는것인지 알 수 있지 않을까 싶었다.
 
+### 2020-09-10
 
 ![image](https://user-images.githubusercontent.com/47310668/92706625-a27a0500-f38f-11ea-8f6a-a93ea1bc98e0.png)
 
@@ -110,7 +111,7 @@ Chain PREROUTING (policy ACCEPT 1 packets, 102 bytes)
 
 iperf3 의 core affinity가 어떻게 동작하는지
 
-각 코어에서 어떤 프로세스가 일어나는건지 알아볼 수있는 시간이!
+각 코어에서 어떤 프로세스가 일어나는건지 알아볼 수있는 툴이 있는지! top, ps
 
 또 반복해서 실험했을 때 특정코어는 항상 10G가 나오는 지 뭐 이런 거도 알아봐야한다!
 ```
@@ -127,7 +128,7 @@ tcpdump -c 30 -i ens4f1 -N 해야지 name으로안나온다. -A였나?
 Set the CPU affinity for the sender (-A 2) or the sender, receiver (-A 2,3), where the cores are numbered starting at 0. This has the same effect as running numactl -C 4 iperf3.
 ```
 core affinity는
-numactl -C 4 iperf3  를 하는 것과 똑같다고한다.
+numactl -C 4 iperf3  를 하는 것과 똑같다고한다.(<https://support.cumulusnetworks.com/hc/en-us/articles/216509388-Throughput-Testing-and-Troubleshooting#cpu_affinity>)
 
 ```
 man numactl
@@ -223,3 +224,26 @@ sudo ps -A -o pid,psr,comm,cpuid >> process.txt
 이중 하나랑 같은 코어에서 돌아가니까 그런게 아닐까?
 
 먼저 (sd-pam)은 systemd --user 의 child인건데, 
+
+일단 iperf3 -A 옵션은 -P 랑같이 사용하면 무용지물이야.
+-P는 여러쓰레드를만들어서 available core에 할당하게 되니까.
+
+vi /proc/cpuinfo 하면 cpu정보들보인다.
+
+numactl의 cpu affinity가 어떻게 작동하는지 -> (<https://stackoverflow.com/questions/14720332/numactl-physcpubind>)
+
+일단 첫번째 의심은
+
+gvfs-udisks2-vo 가 같은 코어에서 돌아가면, 속도가 안나온다? 
+일단 얘가 없어 10G가 나오는 애들은.
+coredns도 없네
+
+kworker 는 placeholder process for 커널 worker threads./ kernel을 위한 대부분의 프로세싱을 담당한다.
+especially in cases where there are interrupts, timers, I/O , etc.
+system cpu time의 대부분을 차지한다. 
+
+kworker/0:1 은 내 첫번째 core의 process이고
+kworker/1:1 은 내 두번째 core의 프로세스이고~
+
+load를 겪을때, kworker때문에라면, echo l > /proc/sysrq-trigger을 이용해서 뭐 로그를만들고하라는데
+<https://askubuntu.com/questions/33640/kworker-what-is-it-and-why-is-it-hogging-so-much-cpu>
