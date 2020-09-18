@@ -122,8 +122,8 @@ apt-get update
 apt-get install net-tools
 apt-get install iperf3
 
-tcpdump -c 30 -i ens4f1 -N 해야지 name으로안나온다. -A였나?
-
+tcpdump -c 30 -i ens4f1 -n 해야지 name으로안나온다. -A였나?
+sudo tcpdump -c 30 -i ens4f1 -n port 5201 으로 해 보통.
 ```
 Set the CPU affinity for the sender (-A 2) or the sender, receiver (-A 2,3), where the cores are numbered starting at 0. This has the same effect as running numactl -C 4 iperf3.
 ```
