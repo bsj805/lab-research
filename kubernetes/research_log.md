@@ -305,17 +305,26 @@ ETHERNET에선 ARP로 next hop ip 였던 곳의 MAC주소를 찾아. 그리고 E
 패킷을 받을때는, 
 ![image](https://user-images.githubusercontent.com/47310668/93547570-4c651d00-f9a0-11ea-89f4-81ba4f46655f.png)
 이것과 같다.
-NIC가 패킷을 메모리에 기록하고, CRC로 패킷이 올바른지 검사하고, 호스트의 메모리 버퍼로 전송한다.
-버퍼는 NIC 드라이버가 커널에 요청해서 미리 패킷 수신용으로 할당한 메모리고, 할당받은 후에 드라이버는 NIC에 메모리 주소와 크기를 알려준다.
-만약 NIC가 패킷을 받았는데 할당된 메모리가 없으면 NIC가 패킷을 drop 시킨다.
+1.NIC가 패킷을 메모리에 기록하고, CRC로 패킷이 올바른지 검사하고, 호스트의 메모리 버퍼로 전송한다.
+2.버퍼는 NIC 드라이버가 커널에 요청해서 미리 패킷 수신용으로 할당한 메모리고, 할당받은 후에 드라이버는 NIC에 메모리 주소와 크기를 알려준다.
+3.만약 NIC가 패킷을 받았는데 할당된 메모리가 없으면 NIC가 패킷을 drop 시킨다.
 
-패킷을 호스트메모리로 전송시키면 NIC가 호스트 OS에 인터럽트를 보낸다. 
-드라이버가 새로운 패킷을 보고 자신이 처리하는 패킷인지 검사.
-드라이버가 상위 레이어로 패킷을 전달하려면, 운영체제가 사용하는 패킷 구조체로 포장해야한다.
+4.패킷을 호스트메모리로 전송시키면 NIC가 호스트 OS에 인터럽트를 보낸다. 
+5.드라이버가 새로운 패킷을 보고 자신이 처리하는 패킷인지 검사.
+6.드라이버가 상위 레이어로 패킷을 전달하려면, 운영체제가 사용하는 패킷 구조체로 포장해야한다.
 linux의 sk_buff (아 이게 skb네) 가 운영체제의 패킷구조체이다. 드라이버가 이렇게 포장한 패킷을 상위 레이어로 전달한다. 
 
-ethernet layer에서도 패킷이 올바른지 검사하고, 상위 네트워크 프로토콜을 찾는다 (de-multiplex) 
+7.ethernet layer에서도 패킷이 올바른지 검사하고, 상위 네트워크 프로토콜을 찾는다 (de-multiplex) 
 이때 ethernet 헤더의 ethertype을 사용한다. IPv4면 ethertype이 0x0800이다.
+8. ethernet헤더를 제거하고 IP 레이어로 패킷을 전달하게 된다. (IP 레이어는 src ip:port와 dst ip:port)
+9.IP layer에서도 패킷이 올바른지 검사하고, (checksum확인) 여기서 IP routing을 해서 패킷을 로컬 장비가 처리하는지
+다른 장비로 전달하는지 판단. 로컬 장비가 처리하는 거면 IP헤더의 proto값을 보고 (tcp는 6) 상위 프로토콜
+(transport protocol)을 찾는다. 그럼 이제 TCP 레이어로 패킷을 전달한다.
+10. 이제 패킷이 올바른지 검사, tcp checksum 확인, 
+11. 패킷이 어디에 속하는지 TCP control block을 찾는다.
+12. 연결을 찾으면 프로토콜을 수행해서 받은 패킷을 처리한다. 새로운 데이터를 받았다면,
+데이터를 receive socket buffer에 추가한다. TCP에 따라 새로운 TCP 패킷을 전송할 수 있다.
+13. app이 read system call을 호출하면 커널 영역으로 전환되고, socket buffer에 있는 데이터를 유저 공간의 메모리로 복사해 간다. 복사한 데이터는 socket buffer에서 제거한다. 
 
 <https://blog.packagecloud.io/eng/2016/06/22/monitoring-tuning-linux-networking-stack-receiving-data/>
 네트워크 스택에 대한 이야기를 들을 수 있어.
@@ -331,4 +340,61 @@ ethernet layer에서도 패킷이 올바른지 검사하고, 상위 네트워크
 pull packets off the ring buffer by calling the NAPI poll function that the device driver 가등록한 (during initialization)
 7. ring buffer의 메모리 영역에서 network data가 쓰여있긴 하지만, 아직 unmapped
 8. Data that was DMA'd into memory is passed up the networking layer as an skb for more processing.
-9. packet steering ( 
+9. packet steering ( <https://lwn.net/Articles/362339/>) 이나 NIC의 multiple receive queue를 통해 network data가 distribute된다.
+10. network data frame들이 handed to the protocol layers from the queues.
+11. protocol layer가 process data
+12 data is added to receive buffers attached to sockets by protocol layers. (실제 어플단에서 받나보다)
+
+--packet steering:
+현재의 네트워크 하드웨어는 패킷을 옮기지 못하는 수준까지 속도를 올리려고 하는데, 
+cpu speed가 증가하는건 멈추고 코어 개수가 늘어나고 있으니, 만약 네트워크 스택이 
+하드웨어를 따라갈 수 있게 smarter processing을 ( 여러 코어에 work를 나누는것)
+해야한다.
+그게 RPS가 나오게 된 배경 (receive packet steering)
+
+OS는 나가는 패킷은 잘 cpu 사이에 distribute가 가능하다. (multiple transmit queue가 지원되기때문)
+하지만 들어오는 패킷은 cpu사이에 distribute하기가 힘든데, 왜냐하면 한 NIC에서 들어오기 때문에 그렇다.
+어떤 NIC는 들어오는 패킷을 나눌 수 있게 여러 receive queue가 있고 multiple interrupt line이 존재하지만,
+single queue만 있는 애들도 있다. 그럼 single stream으로 들어오는 모든 패킷을 드라이버가 처리해야한다는것이다.
+그런 stream을 parallelize하는 것은 host OS에 대한 지식을 필요로 한다. 
+receive path를 hooking하는 netif_rx()와 netif_receive_skb <- 는 리눅스단의 패킷 
+들이 driver가 packet을 networking subsystem에 전달할 때 보는 것이다. 
+
+이제 패킷별로 hash를 통해서 각자가 CPU를 고르게 되어있다. 그럼 target CPU의 자리에 enqueue되게 된다.
+
+
+### cgroup에 대해서 알아보자
+<https://netdevconf.info/1.1/proceedings/slides/rosen-namespaces-cgroups-lxc.pdf>
+
+```
+The cgroup (control groups) subsystem is a Resource Management
+and Resource Accounting/Tracking solution, providing a generic
+process-grouping framework
+```
+즉, 리소스 관리. (memory,cpu,network) 
+
+cgroup을 위한 별도의 new syscall이 필요하지는 않아..
+kernel에 대한 little hook을 본다. (boot phase, fork(), exit(), /proc/pid/cgroup /proc/cgroups 두개 추가.
+
+cgroup core와 (kernel/cgroup.c)
+cgroup controller 두개로 이뤄진다. 
+
+cgroup을 mount하기!
+
+cgroup file system을 사용하려면 ( browse를 하거나, attach task to cgroup)
+
+<https://blog.packagecloud.io/eng/2016/10/11/monitoring-tuning-linux-networking-stack-receiving-data-illustrated/>
+### softirq, linux에서 패킷을 받는것.
+
+컴퓨터 시스템이 어떤 work가 끝났다는 신호를 받으려면, 네트워크의 경우는 NIC가 IRQ를 (kernel interrupt) 
+raise해서, packet has arrived and is ready to be processed 임을 알리게 된다.
+IRQ handler가 executed by the linux kernel, 그리고 너무 많이 쌓이면 새 IRQ가 만들어지는 것을 막는다.
+그러니까 IRQ handlers in device drivers는 무조건 빨리 돌아야한다. 그래서 SOFTIRQ가 만들어져서
+이런 handling을 바깥에서 하게 하는 것이다.
+softIRQ는 system that kernel uses to process work outside of the device driver IRQ context. 
+network devices 의 경우에는, softIRQ system이 responsible for processing incoming packets. 
+
+이런 softIRQ system은 responsible for processing incoming packets. 
+즉 device 드라이버가 처리하려면 너무 많으니 다른 쓰레드에 softIRQ를 이용해서 처리한다.
+kernel/softirq.c 에서 실행된다.
+
