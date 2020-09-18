@@ -247,3 +247,88 @@ kworker/1:1 은 내 두번째 core의 프로세스이고~
 
 load를 겪을때, kworker때문에라면, echo l > /proc/sysrq-trigger을 이용해서 뭐 로그를만들고하라는데
 <https://askubuntu.com/questions/33640/kworker-what-is-it-and-why-is-it-hogging-so-much-cpu>
+
+
+### 2020 -09- 14
+
+회의
+도커 네트워크 구성에 관한 ppt
+iptables의 ip masqurade
+iperf - CPU Affinity
+작업할 코어 지정하는 형식으로 동작하는 게 맞음
+ksoftirqd가 여러개 생겨서 코어마다 CPU를 사용하는 게 있음
+이건 커널 단에서 쓰레드를 코어에 할당해주는 거고, 인터럽트 -> 호출 하는 쓰레드
+이 ksoftirqd가 ~10G가 나올 때는 생성되지 않는 것으로 보아, ~10G가 나오지 않고 해당 CPU가 먹고 있을 때는 인터럽트 처리가 원활히 이루어지지 않았다는 것을 의미함.
+해당 부분에 대한 커널 소프트웨어 리퀘스트 데몬에 대해서 조금 자세히 살펴볼 것
+-> 다음 주 중으로 랩에서 미팅
+
+ksoftirqd의 역할 알아오기 
+tcpdump bandwidth 안좋을 때와 좋을 때 찍어보기
+iperf3 MSS 로 packet 사이즈 다르게 해서 찾아보기
+
+### 2020-09-15
+softirqd가 생기는 이유는 원래 
+<https://www.usenix.org/system/files/nsdi19-zhuo.pdf>
+![image](https://user-images.githubusercontent.com/47310668/93546486-cf38a880-f99d-11ea-9bf0-0c82c1220c1e.png)
+이런식으로 네트워크 스택을 두번 타고 가야되는데, 
+컨테이너에서 출발한 패킷은
+처음에 virtual ip src :port  dst ip :port ( kernel overlay network stack)
+
+였다가
+
+OS kernel 이 eth 헤더를 붙여서 실제 패킷처럼 만들어.
+
+eth | virtual ip src :port  dst ip :port
+
+그러고 virtual switch는 dst ip 를 읽어서 라우팅 테이블을 참고해 physical ip와 port ㅎ헤더를 붙여줘
+phy src ip:port dst ip:port |eth | virtual ip src :port  dst ip :port
+
+그러면 이건 UDP 패킷과 UDP payload같을 거야. 
+
+즉 이렇게 패킷을 바꾸는데 인터럽트가 발생하고, 
+![image](https://user-images.githubusercontent.com/47310668/93547162-5c303180-f99f-11ea-8532-d97b2935a0e8.png)
+<https://d2.naver.com/helloworld/47667>
+이제 linux 나 unix 같이 POSIX 계열은 소켓을 fd 형태로 어플리케이션에 노출해. 
+커널소켓은 send socket buffer가 있고, receive socket buffer가 있어.
+소켓마다 TCB (TCP control Block) , TCP 연결에 처리하는데 필요한 정보를 담아놔. TCB에 있는 데이터는 connection state(LISTEN, ESTABLISHED, TIME_WAIT 등), receive window, congestion window, sequence 번호, 재전송 타이머 등이다.
+패킷생성을 할 때, TCP 패킷이 가장먼저 만들어지지.
+TCP segment. 
+checksum, payload (최대길이는 receive window, congestion window, MSS(maximum segment size) 중 최댓값), 그리고 checksum 계산한다.
+checksum 계산시 IP 주소들, segment 길이등이 포함된다.
+
+이제 이렇게 TCP segment를 IP 레이어로 이동하는데, TCP segment에 IP 헤더를 추가하고, IP routing 즉 목적지 IP 주소로 가기 위한 다음 장비의 IP 주소찾기를 한다.
+그다음은 ethernet layer이다.
+
+ETHERNET에선 ARP로 next hop ip 였던 곳의 MAC주소를 찾아. 그리고 Ethernet 헤더를 패킷에 추가한다.
+그럼 라우팅 할때마다 ethernet 헤더가 벗겨지고 IP 헤더가 벗겨지고 다시 씌워지겠지
+
+패킷을 받을때는, 
+![image](https://user-images.githubusercontent.com/47310668/93547570-4c651d00-f9a0-11ea-89f4-81ba4f46655f.png)
+이것과 같다.
+NIC가 패킷을 메모리에 기록하고, CRC로 패킷이 올바른지 검사하고, 호스트의 메모리 버퍼로 전송한다.
+버퍼는 NIC 드라이버가 커널에 요청해서 미리 패킷 수신용으로 할당한 메모리고, 할당받은 후에 드라이버는 NIC에 메모리 주소와 크기를 알려준다.
+만약 NIC가 패킷을 받았는데 할당된 메모리가 없으면 NIC가 패킷을 drop 시킨다.
+
+패킷을 호스트메모리로 전송시키면 NIC가 호스트 OS에 인터럽트를 보낸다. 
+드라이버가 새로운 패킷을 보고 자신이 처리하는 패킷인지 검사.
+드라이버가 상위 레이어로 패킷을 전달하려면, 운영체제가 사용하는 패킷 구조체로 포장해야한다.
+linux의 sk_buff (아 이게 skb네) 가 운영체제의 패킷구조체이다. 드라이버가 이렇게 포장한 패킷을 상위 레이어로 전달한다. 
+
+ethernet layer에서도 패킷이 올바른지 검사하고, 상위 네트워크 프로토콜을 찾는다 (de-multiplex) 
+이때 ethernet 헤더의 ethertype을 사용한다. IPv4면 ethertype이 0x0800이다.
+
+<https://blog.packagecloud.io/eng/2016/06/22/monitoring-tuning-linux-networking-stack-receiving-data/>
+네트워크 스택에 대한 이야기를 들을 수 있어.
+
+패킷이 도착해서 소켓 receive buffer에 이르기까지는
+
+1. 드라이버가 로드 되고 initialized
+2. packet이 NIC로 도착한다.
+3. packet is copied (via DMA) to a ring buffer in kernel memory
+4. hardware interrupt가 생겨서 시스템이 패킷이 메모리에 들어왔다는 것을 알려(DMA)
+5. 드라이버가 NAPI를 불러서 poll loop를 시작해 (만약 실행중이 아니었다면~)
+6. ksoftirqd process 가 시스템의 각 CPU에서 돌아가기 시작한다. 그들은 부팅할 때 생기는데, 이 프로세스는
+pull packets off the ring buffer by calling the NAPI poll function that the device driver 가등록한 (during initialization)
+7. ring buffer의 메모리 영역에서 network data가 쓰여있긴 하지만, 아직 unmapped
+8. Data that was DMA'd into memory is passed up the networking layer as an skb for more processing.
+9. packet steering ( 
