@@ -430,3 +430,19 @@ cgroup이 memory isolation, network isolation이 들어가
 강성민 학생분의 의견은 iperf3 쪽이랑 softirqd를 통해서 캐시 히트가 안나서 속도가 안나는 것일 수도 있다.
 
 softirqd는 일단 패킷을 받는 receiver packet steering RPS 기술때문에 생기는 것은 맞는 것 같다. 
+
+NET namespace for managing network interface
+
+
+systemd를 이용해서 Cgroup 제어.
+
+systemd는 Linux의 Init Process로, Daemon Process 제어 역할과 더불어 Cgroup을 제어하는 역할도 수행합니다.
+systemd의 Cgroup 제어기능은 systemd가 제어하는 Unit의 일부 기능으로 포함되어 있습니다. 여기서 systemd의
+Unit은 systemd가 제어하는 Daemon process라고 이해하면된다.
+systemd의 Cgroup 제어 기능은 자신이 제어하는 Daemon Process의 resource 사용량을 제어하기 위해 사용된다.
+
+
+cgroup driver는 cgroup을 관리하는 모듈을 의미한다. 
+드라이버는 cgroupfs 와 systemd driver가 존재한다. cgroupfs driver는 직접 cgroupfs로 cgroup를 제어ㅓ,
+systemd driver는 systemd를 통해서 Cgroup을 제어한다.
+
