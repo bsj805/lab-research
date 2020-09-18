@@ -1,6 +1,8 @@
 ## 우수학부생 연구학점제
 
 
+
+
 ### 2020.09.05
 
 첫번째 미팅
@@ -398,3 +400,20 @@ network devices 의 경우에는, softIRQ system이 responsible for processing i
 즉 device 드라이버가 처리하려면 너무 많으니 다른 쓰레드에 softIRQ를 이용해서 처리한다.
 kernel/softirq.c 에서 실행된다.
 
+
+
+#### 2020-09-18
+
+두번째 미팅
+
+cgroup이 memory isolation, network isolation이 들어가
+
+그렇다면 softirqd로 처리하기 직전에 memory를 각 버퍼에 할당해줘서 거기로 dma가 갈 수 있게 하는건데
+그 메모리할당이 native-native에선 자기걸 쓰니까 바로 이루어질텐데, 컨테이너는 cgroup 에서 지원을 해주기 때문에
+늦는 것이 아닌가
+
+교수님의 관점에서는 cgroup의 network isolation이 문제가 있을 것 같다. 조사해보라고 하셨다.
+
+강성민 학생분의 의견은 iperf3 쪽이랑 softirqd를 통해서 캐시 히트가 안나서 속도가 안나는 것일 수도 있다.
+
+softirqd는 일단 패킷을 받는 receiver packet steering RPS 기술때문에 생기는 것은 맞는 것 같다. 
