@@ -384,6 +384,19 @@ cgroup controller 두개로 이뤄진다.
 cgroup을 mount하기!
 
 cgroup file system을 사용하려면 ( browse를 하거나, attach task to cgroup)
+filesystem의 일부에 mount를 해야될 거아니야.
+보통 sytstemd나 container project들은 /sys/fs/cgroup
+/sys/fs/cgroup/systemd
+
+여기 위치하는데, 
+<https://netdevconf.info/1.1/proceedings/slides/rosen-namespaces-cgroups-lxc.pdf> 의 11페이지에 나오는 것과
+같은 폴더들이 모여있다. 각각이 모듈이며, memcontrol은 memory_cgrp_subsysㅡ
+mm/memcontrol.c 모듈이고,
+kernel/sched/cpuacct.c 모듈이 뭔가 cpu 관련인가
+
+이런 인터페이스 파일들이 존재한다. 
+
+
 
 <https://blog.packagecloud.io/eng/2016/10/11/monitoring-tuning-linux-networking-stack-receiving-data-illustrated/>
 ### softirq, linux에서 패킷을 받는것.
