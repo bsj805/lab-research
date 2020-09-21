@@ -446,3 +446,72 @@ cgroup driver는 cgroup을 관리하는 모듈을 의미한다.
 드라이버는 cgroupfs 와 systemd driver가 존재한다. cgroupfs driver는 직접 cgroupfs로 cgroup를 제어ㅓ,
 systemd driver는 systemd를 통해서 Cgroup을 제어한다.
 
+
+### 20-09-21
+<https://netdevconf.info/1.1/proceedings/slides/rosen-namespaces-cgroups-lxc.pdf>
+cgroup에 대해서 좀 더알아보자.
+일단 각 컨테이너에 프로세서를 할당해버릴 수 있는 것 같은데~
+
+lxc-cgroup -n 컨테이너이름 cpuset.cpus "0,1" 이런식으로?
+
+그러면 cat /sys/fs/cgroup/cpuset/lxc/myfedora/cpuset.cpus 에서 실제배정 cpu 알 수 있네.
+
+그러면 이걸 세팅하니까 이걸 가져다 쓰는 함수가있겠지?
+
+구글 스칼라 에서 논문을 검색할 수 있대.
+
+lxc-cgroup -n myfedora memory.limit_in_bytes 40M
+이건 메모리 줄이기
+cat /sys/fs/cgroup/memory/lxc/myfedora/memory.limit_in_bytes
+41943040
+이건 바이트로나옴
+
+이제 release agent 즉 이제 cgroup의 last process가 terminate할때 불리는 가비지 컬렉터 느낌?
+echo 1 > /sys/fs/cgroup/memory/notify_on_release
+이런식으로, release _ agent가 호출되려면 이게 set 되어 있어야 하겠다.
+
+devcg 가 device control group. 이건 resource controller라기 보다는 access controller이긴해.
+enforce restriction on reading, writing and creating(mknod) operations on device files
+
+3 control files: devices.allow, devices.deny, devices.list
+
+devices.allow can be considered as devices white list, deny == black list, list==available devices
+
+그 파일의 entry는 type: can be a(all), c(char device) or b (block device)
+Major number, Minor number, Access
+
+/dev/null 의 major number이 1 이고 minor number이 3 
+
+
+PID cgroup controller가 number of processes per cgroup 을 지정할 수 있나본데
+
+/kernel/cgroup_pids.c 이게 어떻게보는지 모르겠네
+
+cgroup parent에 의해서 controller의 enable과ㅓ dsiable이 결정된다
+
+cgroup controllers 
+memory, io , pids 에 대한 support만 있다.
+
+그래서
+cgroup.controllers 가 ip memory pids 에 대한 정보만 줄거야.
+
+cgroup.procs는 프로세스들의 PID list를 보여줘. (READ write) 
+cgroup.subtree_control
+
+파일시스템이라는게 만들어져서 마운트가 이뤄지면 거기를 이제 그 파일시스템으로 관리할 수 있는거같지
+막 mkdir하고 그런거
+
+system의 모든 프로세스는 단 하나의 cgroup에 속한다.
+그 프로세스의 모든 쓰레드는 같은 cgroup에 속한다.
+프로세스는 cgroup으로 migrate 될 수 있는데, 그 PID를 target cgroup의 cgroup.procs에 쓰면 서 할 수 있다.
+all threads of process belong to the same group. 
+
+*모든 프로세스는 migratable하다는거.*
+
+그러면 프로세스에 속한 모든 쓰레드들도 움직인다.
+이건 cgroup 1에서는 한 프로세스의 쓰레드가 각각 다른 cgroup에 속할 수 있게 하는 것과는 다르다.
+parent가 cgroup 옮겨도 child가 옮겨도 서로 영향안준다.
+
+--path 파라미터에 있는 cgroup name에 기반해서 찾는데, 
+cgroup 
+
