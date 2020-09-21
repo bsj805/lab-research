@@ -513,5 +513,254 @@ all threads of process belong to the same group.
 parent가 cgroup 옮겨도 child가 옮겨도 서로 영향안준다.
 
 --path 파라미터에 있는 cgroup name에 기반해서 찾는데, 
-cgroup 
+cgroup v1에서는 여러 cgroup에 속해있을 수도 있으니 
+path로 subgroup을 찾는 게 어려웠는데,
+이제는,
+예를 들면 "test" 라는 그룹이나 그 서브그룹에서 socket에서 originate되는 트래픽을 찾는 룰은, 
+iptalbes -A OUTPUT -m cgroup --path test -j LOG
 
+야. 이이거는 xt_cgroup netfilter match module의 extenstion이다. /net/netfilter/xt_cgroup.c 
+
+test라는 그룹을 만들고, 현재 shell을 거기로 옮기면, 이 쉘에서 만들어지는 모든 소켓은 그 소켓이 만들어진
+cgroup 서브그룹에 대한 포인터를 가진다. test 그룹에 대한 포인터!
+
+sock_cgroup_data 오브젝트는, per-socket cgroup information을 가지고 있다.
+이건 sock 이라는 오브젝트에 더해진건데, socket이 생성된 cgroup에 대한 포인터를 가지고 있다.
+
+linux의 namespace는
+mnt(mount points, filesystems)
+pid(processes)
+net(network stack)
+ipc(System V IPC)
+uts (hostname)
+user(UIDs)
+프로세스는 fork(), clone(), vclone() syscall로 생성가능한데, 이런 네임스페이스를 지원하기 위해 플래그가 더해질 수 있다.
+
+네트워크 네임스페이스는 logically another copy of the network stack, with its own routing tables, firewall rules, and network devices.
+자기만의 라우팅 테이블, 방화벽, network device를 갖고있다고?
+
+strcuct net에서 네트워크 테이블과 소켓, procfs sysfs를 다룬다.
+
+```
+How do I know to which cgroup does a process belong to?
+cat "/proc/$PID/cgroup" shows this info.
+• The entry for cgroup v2 is always in the format "0::$PATH".
+• So for example, if we created a cgroup named group1 and attached a task
+with PID 1000 to it, then running:
+cat "/proc/1000/cgroup
+0::/group1
+And for a nested group:
+cat /proc/869/cgroup
+0::/group1/nested
+```
+```
+The script in the following slide shows how to connect two namespaces
+by veth (Virtual Ethernet drivers) so that you will be able to ping and
+send traffic between them
+
+ip netns add netA
+ip netns add netB
+ip link add name vm1-eth0 type veth peer name vm1-eth0.1
+ip link add name vm2-eth0 type veth peer name vm2-eth0.1
+ip link set vm1-eth0.1 netns netA
+ip link set vm2-eth0.1 netns netB
+ip netns exec netA ip l set lo up
+ip netns exec netA ip l set vm1-eth0.1 up
+ip netns exec netB ip l set lo up
+ip netns exec netB ip l set vm2-eth0.1 up
+ip netns exec netA ip a add 192.168.0.10 dev vm1-eth0.1
+ip netns exec netB ip a add 192.168.0.20 dev vm2-eth0.1
+ip netns exec netA ip r add 192.168.0.0/24 dev vm1-eth0.1
+ip netns exec netB ip r add 192.168.0.0/24 dev vm2-eth0.1
+brctl addbr mybr
+ip l set mybr up
+ip l set vm1-eth0 up
+brctl addif mybr vm1-eth0
+ip l set vm2-eth0 up
+brctl addif mybr vm2-eth0
+```
+
+<https://medium.com/@BeNitinAgarwal/understanding-the-docker-internals-7ccb052ce9fe>
+도커는 kernel namespace를 사용해서 컨테이너라는 독립 워크스페이스를 만든다. 
+컨테이너가 실행되면, 도커는 그 컨테이너를 위해 set of namespaces를 만든다. 이런 네임스페이스들이
+layer of isolation을 제공하게 된다. 각 컨테이너는 separate namespace에서 돌게 되고, 그 네임스페이스에만
+엑세스할 수 있다.
+또 kernel의 control group을 써서 resource allocation과 isolation을 만들어. 
+그걸 하는게 CGROUP이야. 그건 어플리케이션에게 specific set of resource limit을 줄 수 있거든.
+control group이 allow docker engine to share available hardware resources to containers and optionally enforce limits and constraints.
+
+net_cls and net_prio cgroup for tagging the traffic control.
+
+```
+Docker Engine uses the following cgroups:
+Memory cgroup for managing accounting, limits and notifications.
+HugeTBL cgroup for accounting usage of huge pages by process group.
+CPU group for managing user / system CPU time and usage.
+CPUSet cgroup for binding a group to specific CPU. Useful for real time applications and NUMA systems with localized memory per CPU.
+BlkIO cgroup for measuring & limiting amount of blckIO by group.
+net_cls and net_prio cgroup for tagging the traffic control.
+Devices cgroup for reading / writing access devices.
+Freezer cgroup for freezing a group. Useful for cluster batch scheduling, process migration and debugging without affecting prtrace.
+```
+Cgroup을 제어하는 방법은, cgroupfs를 이용하는 방법과 systemd에서 제공하는 API를 사용하는 방법 2가지가 있다. linux의 Cgroup
+제어하는 방법 중 하나인 cgroupfs.
+Cgroup 정보는linux kernel 안에서 관리. 
+Cgroup 정보는 Directory와 File로 나타나고, Cgroup 제어는 Directory 생성, 삭제 및 파일의 내용 변경을 통해서 이루어진다.
+따라서, cgroupfs로 Cgroup을 제어할 때는 mkdir, rmdir, echo 와 같은거 사용가능. 
+cgroup은 리소스별로 존재해서 리소스별로 mount가 되어있다.
+
+cgroupfs로 Cgroup 생성하는 법은 cgroupfs에 디렉토리 생성. tree형태~
+memory cgroup을 만드는것도. 안에 자동적으로 파일이 많이 등장.
+메모리 그룹 설정에 사용되는 파일들인거야. cgroup.procs 파일 내용을 보면 어떤 프로세스가 속해있는지 안다.
+
+systemd는 linux의 init process로, systemd가 제어하는 unit의 일부 기능으로 cgroup을 제어할 수 있는 api를 쓸 수있는건가봐.
+systemd의 unit은 systemd가 제어하는 데몬 프로세스라고 이해하면 된다.
+음 그러니까 systemd의 Cgroup제어 기능은 자기가 원래 Daemon process의 리소스 사용량을 제어해보려고 사용했는데, 이렇게도 쓰는거지
+
+
+CGroup driver는 cgroup 관리하는 모듈. cgroupfs driver와 systemd driver.
+어떤 cgroup driver를 사용할지는 kubelet 과 docker daemon에 설정되며, 둘다 동일한 driver를 써야해.
+도커 데몬에 설정된 cgroup driver가 docker daemon과 containerd의 명령에 따라서 실제로 Container 생성을 담당하는 runc가 사용된다.
+
+systemd의 API는 systemd에서 제공하는 IPC기법(Inter process Communication) 중 D-Bus를 통해서 다른 process에게 노출된다.
+즉, systemd driver는 D-Bus로 systemd와 통신한다.
+systemd는 D-Bus를 통해서 전달된 systemd Driver의 요청에 따라 Cgroup을 제어한다. 
+
+systemd가 Cgroup을 제어할땐 mkdir 같이 cgroupfs 동일하게 사용한다.
+
+systemd가 /sys/fs/cgroup 경로에 cgroupfs를 mount한다고 했었는데, systemd가 cgroupfs를 사용해서 cgroup을 제어하기 때문에 
+systemd가 cgroupfs의 mount도 관리하는 것이다. 
+
+pod가 있고 컨테이너가 생성되면 (systemd)
+```
+/sys/fs/cgroup/memory/kubepods.slice/kubepods-besteffort.slice/kubepods-besteffort-pod0798b0e6_e445_4738_87b6_91bc5cc5e57f.slice/docker-33dff8e50378bb9baa47bccda0b21d57162ac63411e92cd1e0ff6a9a155470a6.scope
+```
+이런식으로 생긴다.
+slice나 scope니 하는 것들이 systemd에서 Cgroup을 관리하기 위한 Unit의 Type을 나타낸 것.
+
+
+<https://docs.docker.com/network/bridge/>
+
+
+ 도커 네트워크
+ 도커는 software bridge 를 써서 containers connected to same bridge network. 
+ 새로 생성된 컨테이너는 거기에 연결된다. 
+ 그리고 같은 어플리케이션 스택을 브릿지 네트어크에서 실행하면 그 컨테이너끼리는 --link로 직접만들어야된다. 
+ 그 링크는 양방향으로 만들어져야 한다. /etc/hosts 파일을 컨테이너 사이에 바꿔도 되긴 해~
+ 
+ 내 컨테이너들이 default bridge network를 사용하면, 모든 컨테이너가 같은 세팅을 써 MTU, iptable rules. 그래서, default
+ bridge network는 도커바깥에서 일어나고, Docker의 restart를 필요로 한다. 
+ 
+```bash
+docker create --name my-nginx \
+  --network my-net \
+  --publish 8080:80 \
+  nginx:latest
+ ```
+ 도커 컨테이너만들때, custom network 와 , 컨테이너의 80번포트를 호스트의 8080에 묶어버렸어!
+ 
+ daemon.json에 옵션을 넣어서 default bridge network를 configure 할 수 있어.
+ ```
+ {
+  "bip": "192.168.1.5/24",
+  "fixed-cidr": "192.168.1.5/25",
+  "fixed-cidr-v6": "2001:db8::/64",
+  "mtu": 1500,
+  "default-gateway": "10.20.1.1",
+  "default-gateway-v6": "2001:db8:abcd::89",
+  "dns": ["10.20.1.2","10.20.1.3"]
+}
+```
+오?? 이러고 restart docker하래.
+-p 옵션은 그냥 firewall rule하나 추가하는거고, IP주소는
+단순히 Docker daemon이 DHCP로 작용해.
+
+
+
+docker and iptables
+
+docker은 iptables rule을 이용해 network isolation을 적용한다. 
+
+docker은 installs two custom iptables chains named DOCKER-USER and DOCKER and it ensures that incoming packets are always
+checked by these two chains first.
+
+All of Docker's iptables rules are added to the DOCKER chain. 이 chain을 manipulate maunally 해서는 안된다. 만약
+뭔가 더하고싶으면, DOCKER-USER chain에 더해라. DOCKER create automatically 한것보다 먼저 docker-user chain이 적용된다.
+
+rules added to the forward chain은 이 도커 체인 두개를 지나야지 적용된다.
+만약 도커를 통해 port를 expose했으면, 이 포트는, 내 어떤 firewall이 configure 되었던 간에 docker rule을 따른다.
+```
+iptables -I DOCKER-USER -i ext_if ! -s 192.168.1.1 -j DROP
+```
+이러면 ext_if 라는 인터페이스에 192.168.1.1 로 들어오는 패킷을 제외하면
+죄다 drop시킨다는 뜻.
+
+```
+iptables -I DOCKER-USER -i ext_if ! -s 192.168.1.0/24 -j DROP
+```
+이러면 192.168.1 서브넷으로 시작하는 애들은 허용하지만 그 외에는 다 드롭
+
+-s가 --src-range -d는 --dst-range
+
+/etc/docker/daemon.json을 만지면 iptables를 도커가 설정못하게 할 수도 있어.
+
+<https://www.netfilter.org/documentation/HOWTO/NAT-HOWTO.html>
+linux kernel masquerading NAT
+masquerading은 SNAT야. source address를 바꾸니까. 
+Destination NAT is when you alter the destination address of the first packet: i.e. you are changing where the connection is going to.
+Destination NAT is always done before routing, when the packet first comes off the wire. Port forwarding, load sharing, and transparent proxying are all forms of DNAT.
+가장 먼저 이뤄지는건가본데
+
+우리는 NAT rule을 만들어서 kernel에게 어떤 커넥션이 바뀌어야 하고 어떻게 바뀌어야 하는지 말해줘야한다.
+그래서 iptables 라는 툴을 이용한다. 그리고 그것에게 말해서 NAT table을 -t nat라고 specify 하도록 한다.
+
+NAT rule 테이블은 three list called chains. 가지고 있다. 각 rule은 examined in order until one matches.
+두개는 PREROUTING( destination NAT 패킷이 처음 들어올때,) POSTROUTING (SOURCE NAT, 패킷이 떠날때) , output.
+      _____                                     _____
+     /     \                                   /     \
+   PREROUTING -->[Routing ]----------------->POSTROUTING----->
+     \D-NAT/     [Decision]                    \S-NAT/
+                     |                            ^
+                     |                            |  
+                     |                            |
+                     |                            |
+                     |                            |
+                     |                            |
+                     |                            |
+                     --------> Local Process ------
+                     
+그렇대 ㅋㅋ
+
+ 새 커넥션이면 iptalble chain in the NAT table을 보고, 이미 들어왔던거면 저때 결정된 대로 하게 된다.
+ table selection option -t 
+ 
+ -t nat 를 하면 NAT table을 볼 수 있다는 거야 iptable에
+ 
+ -A가 맨 뒤에 APPEND
+ -I 가 맨 앞에 insert
+ 
+ -i incoming interface
+ -o outgoing interface
+ 
+ 
+ Source NAT가 -j SNAT로 specify 되는 경우도 있지만, ( 그럼 어디로 나가는 패킷은 src ip를 무엇으로바꿔라 거든)
+ 
+ Masquerading이 specialized case 의 SOURCE NAT야.
+ dynamically assigned IP address만을 위해 쓰여, standard dialups
+ 직접 source address를 명시안해도 ( public ip를 직접 안적어줘도)
+ 그 패킷이 나가는 interface의 IP를 쓸거야. 그리고 링크가( 커넥션이) 다운되면, 새 IP로 커넥션이 들어올때 glitch가 적어진다.
+ 
+ destination NAT는 PREROUTING chain. 이거도 직접 dest를 명시하기도 해 .
+ 
+ 맞아그리고
+ SNAT했으면 돌아오는 패킷도 이쪽으로 와야된다는것을 알아야 하잖아. 답장을 일로보내야된다고.
+ 만약 너가 1.2.3.4 source address 로 보내는 것처럼 패킷을 바꾼다면, (SNAT)
+ 바깥쪽의 router도 자기가 reply packet (1.2.3.4가 dest인)을 이쪽으로 보내야 한다는 걸 알아야 하잖아
+ 
+ 1.만약 너가 SNAT를 이미 하고있던 중이면 암것도 안해도돼
+ 2. 만약근데 local LAN에서 안쓰던 address로 SNAT를 한다면, (우리가 1.2.3.0/24 네트워크에서 ) 1.2.3.99 아이피로 SNAT했으면,
+ 너의 NAT box는 ARP request를 보내야 해. ip address add 1.2.3.99 dev eth0 이런식으로 나한테 오게 등록을 해놓을 수도 있고,
+ 3. 아예 다른 ADDRESS로 snat 하는 거면, 이 NAT box로 돌아올 수 있게 ensure 해주어야 한다. default gateway면 무조건
+ 그리로 오게되어있으니가 괜찮은데, 아니라면 route 상태를 advertise하거나, 각 머신에 route를 더해주어야한다.
+ 
+ 
