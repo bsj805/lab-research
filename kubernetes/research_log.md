@@ -769,3 +769,5 @@ NAT rule 테이블은 three list called chains. 가지고 있다. 각 rule은 ex
 네트워크 스택이해에 도움이되는 논문.
 
 softirqd의 역할과 패킷이 어디에 필요한지 등
+
+흠 가능성이 cgroup이 
