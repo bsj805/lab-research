@@ -796,3 +796,6 @@ cgroup 상에서 cpu하나만 준대
 이부분에 대한 논의가 필요할 것같다.
 
 음 가능한 방법은 일단 우선적으로, Receive packet steering이 잘 안이뤄지고 있는 것이 아닌가 싶다.
+![image](https://user-images.githubusercontent.com/47310668/94025530-91031500-fdf3-11ea-9694-a1934f88c6c8.png)
+
+일단 의혹은 , 뭔가 black (sender) 측과 receiver측이 같은 core에 ksoftirqd를 할당하는것이아닌가?
