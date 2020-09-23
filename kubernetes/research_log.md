@@ -771,3 +771,28 @@ NAT rule 테이블은 three list called chains. 가지고 있다. 각 rule은 ex
 softirqd의 역할과 패킷이 어디에 필요한지 등
 
 흠 가능성이 cgroup이 
+
+```
+/sys/fs/cgroup/cpuset/system.slice/
+```
+에 보니까 docker로 시작하는거 하나있네.
+여기에서 cat cpuset.cpus  하니까 0-9로 나온다.
+```
+sudo docker run -it --cpuset-cpus 1  bruzn/ubuntu-cppthreadserver300 bin/bash
+sudo docker exec -it 2b1fec86518c /bin/bash 
+```
+이렇게하면 cpu 1번만사용한다. 근데 nmon실행시키면 모든 cpu보이긴해서, 다른 cpu에대한 권한은 있는건가? RO?
+어쨌든 
+cgroup 상에서 cpu하나만 준대
+
+지금 컨테이너는 1만쓸수있느상황에서 (cpu core 1번0
+![image](https://user-images.githubusercontent.com/47310668/94021882-79299200-fdef-11ea-9dc4-da7cd49b284f.png)
+-A 1,4 했는데 4번에서 ksoftirqd가 겹치니까 성능저하를 발견해냈다. 즉 iperf와 ksoftirq가 같은 코어에 배정받으면
+논문대로 iperf3 프로세스를 일부 저해하면서, ksoftirq 즉 커널쪽에서 이 프로세스의 시간을 뺏어버리는 것 떄문인 것 같다.
+그리고 1번코어를 쭉 돌았는데 결국 10G가 나오진 않았다. 즉 이건 순전히 운인가?
+
+아니야 일단, 이 논문 내용이 주효한것 같다.
+근데 4번코어가 항상 ksoftirqd가 작동하는데 (그래서 iperf3 를 4번코어에서 돌리면 문제가발생함 5.5gb정도로?) 
+이부분에 대한 논의가 필요할 것같다.
+
+음 가능한 방법은 일단 우선적으로, Receive packet steering이 잘 안이뤄지고 있는 것이 아닌가 싶다.
