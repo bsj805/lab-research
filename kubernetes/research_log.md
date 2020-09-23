@@ -764,3 +764,8 @@ NAT rule 테이블은 three list called chains. 가지고 있다. 각 rule은 ex
  그리로 오게되어있으니가 괜찮은데, 아니라면 route 상태를 advertise하거나, 각 머신에 route를 더해주어야한다.
  
  
+### 2020-09-23
+<https://www.usenix.org/conference/nsdi18/presentation/khalid>
+네트워크 스택이해에 도움이되는 논문.
+
+softirqd의 역할과 패킷이 어디에 필요한지 등
