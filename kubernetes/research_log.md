@@ -799,3 +799,7 @@ cgroup 상에서 cpu하나만 준대
 ![image](https://user-images.githubusercontent.com/47310668/94025530-91031500-fdf3-11ea-9694-a1934f88c6c8.png)
 
 일단 의혹은 , 뭔가 iperf3 패킷이 겹치는게 문제다.
+
+회의결과
+NAPI 가 패킷을 한번에 모아서 보내는 batch processing에 관여하는건데
+queue에 있는걸 올려주는 역할
