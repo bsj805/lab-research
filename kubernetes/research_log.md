@@ -803,3 +803,69 @@ cgroup 상에서 cpu하나만 준대
 회의결과
 NAPI 가 패킷을 한번에 모아서 보내는 batch processing에 관여하는건데
 queue에 있는걸 올려주는 역할
+
+#### 2020-09-26
+
+<http://balodeamit.blogspot.com/2013/10/receive-side-scaling-and-receive-packet.html>
+hardware device에서 cpu에게 signal을 보내서 device가 input 이나 output operation을 한다고 말해주는거야. (interrupt)
+interrupt발생하면, execute an interrupt service routine.
+
+Soft IRQ: 이런 interrupt request is like hardware interrupt request. 
+NIC에 packets arrive at NIC an interrupt is generated to CPU so that it can stop whatever it doing. 
+그리고 NIC에게 ack을 보내, I am ready to serve you라고 알려준다. 그러면, NIC에서 data를 가져가서, kernel buffer로 copy하고, TCP / IP processing과 provide data to application stack 한다. 
+데이터를 TCP / IP stack을 통해 올려보내는 것은, CPU의 poll queue에 softirq로 집어넣는 것이다.
+
+socket buffer pool은 RAM 영역 중, packet data를 가지고 있게 boot up process 에서 할당했던 메모리영역! (kernel memory)
+
+RX queue는 socket descriptors for actual packets in socket buffer pool(위에 설명한). circular queue라서, packet
+first arrives at NIC일때, device가 add the packet descriptor in matching Rx queue and its data into socket buffer.
+즉 패킷이오면, packet descriptor를 맞는 Rx queue에 넣고, data는 소켓 버퍼에 넣는대.
+현대 NIC에서는, multiple queues possible which is also called RSS(concept to distribute packet processing load across multiple processors). 
+
+ 이 softirq 가 언제 ksoftirqd를 넘어가냐면
+ ```
+ <http://egloos.zum.com/rousalome/v/9978671>
+ ksoftirqd 스레드는 깨우려면 wakeup_softirqd() 함수를 호출해야 합니다. 이 함수는 다음 조건에서 호출합니다.
+ - __do_softirq() 함수에서 Soft IRQ 서비스 실행 중 MAX_SOFTIRQ_TIME 지피 시간만큼 경과했을 때	
+ - 인터럽트 컨택스트가 아닌 상황에서 Soft IRQ 서비스를 요청할 때
+ ```
+ ```
+ <https://ghdud4006.tistory.com/7> linux kernel basic 에 관해서 알려준다. 
+ * cf ) Polling
+
+;kernel이(processor가) device의 상태를 periodic하게 check
+
+- 장 : polling 시기를 정해 asynchronous한 h/w처리가 발생하지 않음 => 구현 쉬움
+
+- 단 : device가 처리하지 않은 경우도 check하기 때문에 cpu clock 낭비
+```
+
+패킷이 NIC에 도착하면, receive queue에 더해진다. Receive queue는 assigned an IRQ number ( 너는 몇번 IRQ야) 
+during device driver initialization. 그리고 각 queue마다 available cpu processor가 할당된다.
+그 프로세서는 servicing IRQ interrupt service routine에 responsible하다. 
+보통, data processing은 also done by same processor which does ISR.(routing말하는 것 같은데?)
+너의 기계가 single core면 잘 작동하겠지만, 멀티 코어다 보니까, network traffic 많을 땐 잘 작동 못해.
+ISR routine (라우팅 등) 은 너무 작아서 싱글 코어에서 executed 될때는 performance 에 큰 차이가 없지만,
+data processing과 moving data up in TCP / IP stack 은 시간이 좀 걸린다. 이게 다 single processor에 의해 돌아가니까.
+
+``` 
+<http://balodeamit.blogspot.com/2013/10/receive-side-scaling-and-receive-packet.html>
+cat /proc/interrupts 
+를 보면 왼쪽이 irq 넘버고 cpu 사용량을 쭉 따라가보면, 어떤 ethernet 카드에 대해서 어떤 core를 쓰고있는 지 알 수 있어.
+해당코어에 적혀있는 숫자는 몇개의 인터럽트가 Rx queue에서 생성되었는지.
+cat /proc/irq/53/smp_affinity 는 IRQ 53번이 interrupt를 CPU 8 로 보내도록 함을 보여준다.
+이건 hexadecimal로 나오는데
+1이면 cpu 0 을 뜻하고, value F 는 0~3 FF는 0~7 100은 cpu8 을 뜻함.
+```
+
+RSS는 network card가 여러 receive and send queue를 가지고 있도록 한다. 이런 queue들은 individually mapped to each
+CPU processor.
+```
+RSS provides the benefits of parallel receive processing in multiprocessing environments. Receive Side Scaling is a NIC technology. It supports multiple receive queues and integrates a hashing function(distributes packets to different queues by Source and Destination IP and if applicable by TCP/UDP source and destination ports) in the NIC. The NIC computes a hash value for each incoming packet. Based on hash values, NIC assigns packets of the same data flow to a single queue and evenly distributes traffic flows across queues.
+```
+그렇다는것은,
+컨테이너에서 출발한 패킷은 RSS가 적용이안되어서, NIC가 힘들어하는 것이 아닐까??
+물론 컨테이너로 들어오는 패킷은 아니다만,
+RSS를 하려고 해도 최종목적지를 그 때에 파악못할 것 같으니 RSS 안시키고 보내버리는게 아닐까 싶다.
+
+intel igb driver상에서 multiple queue enable하는 방법을 가지고있다.
