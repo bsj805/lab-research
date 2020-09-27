@@ -1,5 +1,6 @@
 
 # Kubernetes basic
+tmux vim에서 jellybeans 나오게하려면, tmux -2 로실행
 
 
 kubeadm token create --print-join-command 다시 join 시키기.
