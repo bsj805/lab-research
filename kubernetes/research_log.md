@@ -869,3 +869,71 @@ RSS provides the benefits of parallel receive processing in multiprocessing envi
 RSS를 하려고 해도 최종목적지를 그 때에 파악못할 것 같으니 RSS 안시키고 보내버리는게 아닐까 싶다.
 
 intel igb driver상에서 multiple queue enable하는 방법을 가지고있다.
+
+### 2020-11-18 
+
+<https://opensource.com/article/20/10/linux-kernel-interrupts>
+interrupt에 대한 이야기이다.
+interrupt는 hardware interrupt, software interrupt, exception으로 나눠진다.
+
+interrupt request (IRQ)는 programmable interrupt controller (PIC)에 의해 요청이 된다.
+이는 CPU를 interrupt 시킴과 executing interrupt service routine (ISR) 하는데에 그 목적이 있다. 
+** ISR은 small program인데, process certain data depending on the cause of the IRQ.**
+즉 IRQ 종류에 따라 어떤 data를 처리. Normal processing is interrupted until the ISR finishes.
+원래 IRQ는 handled by a separate microchip (PIC). PIC가 various hardware IRQ를 manage하고 CPU에게 directly talk. 
+IRQ가 일어나면, PIC가 data를 CPU에쓰고, raised interrupt request pin. (INTR) 
+그러나 요즘에는
+IRQ가 advanced programmable interrupt controller (APIC)에 의해 다뤄진다.
+
+
+#### HW interrupts:
+
+HW device가 CPU에게 나 이제 process할 준비 됐어 (NIC에 packet이 도착했을때) 라고 하고싶을때.
+IRQ를 보내서 signal CPU that data is available. 
+이게 커널이 스타트할 때 device driver에 의해 register 되었던 specific ISR을 invoke하게 된다.
+This invokes a specific ISR that was registered by the device driver during the kernel's start.
+
+#### sw interrupts
+비디오 틀때 music과 video playback을 일치시켜서 music의 speed가 not vary하게 하는 게 중요하다.
+이것은 sw interrupt로 accomplish되는데, precise timer system을 이용한다.
+이런식으로, software interrupt는 can be invoked by a special instruction to read or write data to a hardware device.
+
+또, sw interrupt는 crucial when real-time capability is required.
+
+#### GET HANDS ON
+
+IRQ는 ordered by priority in a vector on the advanced PIC (APIC where 0==highest priority) 
+첫 32 개의 interrupt (0~31)은 CPU에 의해 fixed sequence. <https://wiki.osdev.org/Exceptions> 참고
+그 뒤의 IRQ들은 can be assigned differently. 
+``` The interrupt descriptor table (IDT) contains the assignment between IRQ and ISR. Linux defines an IRQ vector from 0 to 256 for the assignment.```
+
+registered interrupt를 확인하는 것은 cat /proc/interrupts
+
+왼쪽부터
+IRQ vector(숫자)  interrupt count per CPU (0~n번째 CPU까지) | hardware source | hardware source's channel info,
+| name of the device that caused the IRQ.
+
+더 아래에 보면 non-numeric interrupts들도 있어. architecture specific interrupts라고 , LOC 같은건 local timer interrupt
+
+
+<https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/irq_vectors.h>에 어떤 interrupt가 명시되어있다.
+
+``` watch -n1 "cat /proc/interrupts" ``` 로 주기적으로 관찰하자.
+
+<https://0xax.gitbooks.io/linux-insides/content/Interrupts/> linux 책
+<https://linux-kernel-labs.github.io/refs/heads/master/lectures/interrupts.html#> linux 깃허브
+#### 리눅스의 네트워킹
+<https://linux-kernel-labs.github.io/refs/heads/master/labs/networking.html> 네트워크에 대한 공부.
+user space에서는 network communication의 abstraction이 socket이야.
+
+IP socket 이 associated with an IP address. 그리고 transport layer protocol (TCP, UDP) 가 사용된다. 포트랑.
+
+##### netfilter:
+kernel interface의 이름인데, network packets를 캡쳐해서 modify or analyze them.  (filtering, NAT)
+user space에서는 iptables로 사용된다.
+
+리눅스 커널에서는, packet capture using netfilter이 done by attaching hooks.
+Hooks 는 can be specified in different locations in the path followed by a kernel network packet. 
+
+
+### 2020-11-19 미팅
