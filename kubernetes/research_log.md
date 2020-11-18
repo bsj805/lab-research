@@ -869,6 +869,8 @@ RSS provides the benefits of parallel receive processing in multiprocessing envi
 RSS를 하려고 해도 최종목적지를 그 때에 파악못할 것 같으니 RSS 안시키고 보내버리는게 아닐까 싶다.
 
 intel igb driver상에서 multiple queue enable하는 방법을 가지고있다.
+### 2020-10-17
+https://o365skku-my.sharepoint.com/:w:/r/personal/bsj805_o365_skku_edu/_layouts/15/Doc.aspx?sourcedoc=%7B5C157EA4-95C8-40AA-8E77-87F29511A787%7D&file=%5B%ED%95%99%EB%B6%80%EC%97%B0%EA%B5%AC%EC%83%9D%5D%20IRON.docx&action=default&mobileredirect=true
 
 ### 2020-11-18 
 
@@ -934,6 +936,224 @@ user space에서는 iptables로 사용된다.
 
 리눅스 커널에서는, packet capture using netfilter이 done by attaching hooks.
 Hooks 는 can be specified in different locations in the path followed by a kernel network packet. 
+![image](https://user-images.githubusercontent.com/47310668/99533367-1d434a00-29e9-11eb-828e-c1bb00d5b270.png)
+를 참조하라.  NAT가 어떻게 conntrack, mangle, nat, filter를 거치는지. Netfilter Packet Traversal.
+linux/netfilter.h 에서 hook을 찾을 수 있어.
+
+이런걸로 rule을 새로 지정하나봐.
+```
+enum nf_inet_hooks {
+      NF_INET_PRE_ROUTING,
+      NF_INET_LOCAL_IN,
+      NF_INET_FORWARD,
+      NF_INET_LOCAL_OUT,
+      NF_INET_POST_ROUTING,
+      NF_INET_NUMHOOKS
+};
+IP로 오는 패킷이라면, hook type은 이런거.
+hook은 handler called when capturing a network packet (packet sent as a struct sk_buff structure) 
+
+netcat
+When developing applications that include networking code, one of the most used tools is netcat. Also nicknamed “Swiss-army knife for TCP / IP”. It allows:
+
+Initiating TCP connections;
+Waiting for a TCP connection;
+Sending and receiving UDP packets;
+Displaying traffic in hexdump format;
+Run a program after establishing a connection (eg, a shell);
+Set special options in sent packages.
+Initiating TCP connections:
+
+nc hostname port
+Listening to a TCP port:
+
+nc -l -p port
+Sending and receiving UDP packets is done adding the -u command line option.
+```
+이사이트에서 kernel module을 만들 수 있다.
+#### interrupt 문서
+<https://static.lwn.net/images/pdf/LDD3/ch10.pdf>
+
+아아 중요한건, /proc/interrupts가 각 CPU에 얼마나 많은 interrupts가 전달되었는지를 알려주는 것.
+Linux Kernel은 generally handles interrupts on the first CPU as a way of maximizing cache locality.
+cache locality를 최대한 살린다! (큰 시스템에서는 자체 load balancing이 있지만) 
+
+/proc/stat 또한 interrupt related file인데, 이는 records several low-level statistics about system activity.
+number of interrupts received since system boot라던지, 
+
+intr 5167833 5154006 2 0 2 4907 0 2 68 4 0 4406 9291 50 0 0
+라면, 
+```
+The first number is the total of all interrupts, while each of the others represents a
+single IRQ line, starting with interrupt 0. All of the counts are summed across all
+processors in the system. This snapshot shows that interrupt number 4 has been
+used 4907 times, even though no handler is currently installed. If the driver you’re
+testing acquires and releases the interrupt at each open and close cycle, you may find
+/proc/stat more useful than /proc/interrupts
+```
+ 넘버 4 짜리 interrupt가 4907번 사용되었네. 그치. 아직 handler도 안깔렸는데 이만큼 썼음. ㅋㅋ 버그인거겠지
+ 
+ stat은 kernel 밑의 HW에 달려있는데 include/asm-i386/irq.h 
+ 
+ ```
+ Linux (along with many other systems) resolves this problem by splitting the interrupt handler into two halves. The so-called top half is the routine that actually
+responds to the interrupt—the one you register with request_irq. The bottom half is a
+routine that is scheduled by the top half to be executed later, at a safer time. The big
+difference between the top-half handler and the bottom half is that all interrupts are
+enabled during execution of the bottom half—that’s why it runs at a safer time. In
+the typical scenario, the top half saves device data to a device-specific buffer, schedules its bottom half, and exits: this operation is very fast. The bottom half then performs whatever other workis required, such as awakening processes, starting up
+another I/O operation, and so on. This setup permits the top half to service a new
+interrupt while the bottom half is still working.
+Almost every serious interrupt handler is split this way. For instance, when a networkinterface reports the arrival of a new packet, the handler just retrieves the data
+and pushes it up to the protocol layer; actual processing of the packet is performed
+in a bottom half.
+```
+
+즉, top half 와 bottom half로 interrupt를 split해서 처리하는데,
+NIC에서 packet을 받으면 interrupt를 일으켜서 handler는 이 data를 retrieve해서 pushes it up to the protocol layer하고,
+다시 interrupt를 받을 수 있는 상태가 되는거야. 그럼 이제 packet 의 processing은 bottom half에서 이뤄지는거야.
+work queue를 둬서 걔네들은 higher latency를 갖지만 allowed to sleep.
+근데 workqueue에서 user space로 copy data를 할 수는 없어. chapter 15의 advanced technique이 아니라면.
+worker process는 does not have access to any other process's address space.
+
+랩실폴더- 쿠버네티스네트워크.pptx 를 보면아시다시피,
+무언가 때문에 ksoftirqd로 많이 넘어가고 만약 그렇게 생기면 ksoftirqd가 프로세싱 타임을 잡아먹기 때문에 
+즉 한번 밀리기 시작하니까 게속 밀리는 것이라고 보는 게 맞다. 
+
+<https://0xax.gitbooks.io/linux-insides/content/Interrupts/linux-interrupts-9.html>
+
+```
+Interrupts may have different important characteristics and there are two among them:
+
+Handler of an interrupt must execute quickly;
+Sometime an interrupt handler must do a large amount of work.
+As you can understand, it is almost impossible to make so that both characteristics were valid. Because of these, previously the handling of interrupts was split into two parts:
+
+Top half;
+Bottom half;
+```
+과거엔 linux kernel에서 bottom half 로 interrupt handling을 defer하는 방식. 
+시스템이 less loaded일때로 execution을 postpone하는 것이 좋다.
+즉 interrupt가 disabled된 상태로 큰 일은 처리하지말자.
+```
+ In the first part, the main handler of an interrupt does only minimal and the most important job. After this it schedules the second part and finishes its work. When the system is less busy and context of the processor allows to handle interrupts, the second part starts its work and finishes to process remaining part of a deferred interrupt.
+ 
+ There are three types of deferred interrupts in the Linux kernel:
+
+softirqs;
+tasklets;
+workqueues;
+ ```
+ #### softirqs
+ ```
+ With the advent of parallelisms in the Linux kernel, all new schemes of implementation of the bottom half handlers are built on the performance of the processor specific kernel thread that called ksoftirqd (will be discussed below). Each processor has its own thread that is called ksoftirqd/n where the n is the number of the processor. We can see it in the output of the systemd-cgls util:
+ ```
+The spawn_ksoftirqd function starts this these threads. As we can see this function called as early initcall:
+
+early_initcall(spawn_ksoftirqd);
+
+여기서 생성된다. 
+
+softirq function은 
+
+먼저 open_softirq로 시작하는데,
+and as we can see this function uses two parameters:
+
+the index of the softirq_vec array;
+a pointer to the softirq function to be executed;
+즉 여기서 어떤 함수를 실행시킨다. 
+. In the current version of the Linux kernel there are ten softirq vectors defined; 
+wo for tasklet processing, two for networking, two for the block layer, two for timers, and one each for the scheduler and read-copy-update processing.
+즉 아직 , tasklet으로 프로세싱이 가능하고, networking으로 가능하다.
+```
+enum
+{
+        HI_SOFTIRQ=0,
+        TIMER_SOFTIRQ,
+        NET_TX_SOFTIRQ,
+        NET_RX_SOFTIRQ,
+        BLOCK_SOFTIRQ,
+        BLOCK_IOPOLL_SOFTIRQ,
+        TASKLET_SOFTIRQ,
+        SCHED_SOFTIRQ,
+        HRTIMER_SOFTIRQ,
+        RCU_SOFTIRQ,
+        NR_SOFTIRQS
+};
+```
+network가 두개인건 TX랑 RX때문이었구나. 
+Or we can see it in the output of the /proc/softirqs:
+
+```
+As we can see the softirq_vec array has softirq_action types. This is the main data structure related to the softirq mechanism, so all softirqs represented by the softirq_action structure. The softirq_action structure consists a single field only: an action pointer to the softirq function:
+```
+이 open_softirq function을 부름으로써, register deferred interrupt to be queued for execution.
+이제 raise_softirq function 으로인해 activated 되게 된다. 이 raise는 index하나만 인자로 받는다.
+vector의 몇번째거를 받을지 결정하나보다.
+
+```
+Here we can see the call of the raise_softirq_irqoff function between the local_irq_save and the local_irq_restore macros. The local_irq_save defined in the include/linux/irqflags.h header file and saves the state of the IF flag of the eflags register and disables interrupts on the local processor. The local_irq_restore macro defined in the same header file and does the opposite thing: restores the interrupt flag and enables interrupts. We disable interrupts here because a softirq interrupt runs in the interrupt context and that one softirq (and no others) will be run.
+```
+좋아. softirq 실행까지는 interrupt가 없어야해. 즉 softirq실행까지는 interrupt야. 다른 프로세스가 간섭못해.
+그상태로, 이 deferred interrupt를 표시한다음, interrupt를 disable했던걸 되돌리고, ksoftirqd kernel thread를 
+wakeup_softirqd로 실행시켜.
+```Each ksoftirqd kernel thread runs the run_ksoftirqd function that checks existence of deferred interrupts and calls the __do_softirq function depending on the result of the check. 
+```
+그럼 deferr 해놨던 것을, execution하게 되는데, 이는 userspace의 code execution도 delay 시킬 수 있어. 
+
+do irq 호출할하고 끝낼때마다( exiting_irq from arch/x86/include/asm/apic.h)  ksoftirqd는 자기일 생겼나 하고 찾아보게 돼. that also executes __do_softirq
+
+```
+To summarize, each softirq goes through the following stages:
+
+Registration of a softirq with the open_softirq function.
+Activation of a softirq by marking it as deferred with the raise_softirq function.
+After this, all marked softirqs will be triggered in the next time the Linux kernel schedules a round of executions of deferrable functions.
+And execution of the deferred functions that have the same type.
+As I already wrote, the softirqs are statically allocated and it is a problem for a kernel module that can be loaded. The second concept that built on top of softirq -- the tasklets solves this problem.
+```
+#### Tasklets
+
+If you read the source code of the Linux kernel that is related to the softirq, you notice that it is used very rarely. The preferable way to implement deferrable functions are tasklets. As I already wrote above the tasklets are built on top of the softirq concept and generally on top of two softirqs:
+
+In short words, tasklets are softirqs that can be allocated and initialized at runtime and unlike softirqs, tasklets that have the same type cannot be run on multiple processors at a time.
+
+kernel/softirq.c 
+<https://github.com/torvalds/linux/blob/16f73eb02d7e1765ccab3d2018e0bd98eb93d973/kernel/softirq.c>
+In our case, we set only for initialize only two arrays of tasklets in the softirq_init function: the tasklet_vec and the tasklet_hi_vec. Tasklets and high-priority tasklets are stored in the tasklet_vec and tasklet_hi_vec arrays, respectively
 
 
+리눅스 커널 프로그래밍
+<https://0xax.gitbooks.io/linux-insides/content/LINKS.html>
+
+
+내 프로그램이 UDP 패킷을 많이 못받아요. iptables가 processing 하면서 almost all network stack을 softirq context에서 돌거든요. lots of rules or modules with a heavy worklaod like conntrack loaded.
+<https://serverfault.com/questions/638014/receive-many-udp-packets-ksoftirqd-load/754403>
+그러면 이건 어때?
+<https://blog.cloudflare.com/how-to-receive-a-million-packets/>
+
+taskset -c 1 ./a.out 이런식으로 하면  코어를 defined cpu에서 돌릴 수 있어.
+ RX queue #4 delivers packets to CPU #4. And CPU #4 can't do any more work - it's totally busy just reading the 350kpps. Here's how that looks in htop:
+ 아마 우리도 이런느낌아닐까?
+ 
+ ![image](https://user-images.githubusercontent.com/47310668/99549377-ebd47980-29fc-11eb-8926-944c3cbc9f76.png)
+ethtool -n ens4f1 rx-flow-hash tcp4
+라고치면, 어떤 hashing 기법을 사용하는지 알 수 있다. 언제? IPV4를 TCP로 사용할때. udp4로 하면 IPV4를 UDP로.
+IP SA
+IP DA는 IP of source address와 IP of destination address
+RX_queue_number = hash('192.168.254.30', '192.168.254.1') % number_of_queues
+로 할것이다. 그래서 같은 거면 같은 queue로 돌아가게.
+
+그렇다면 만약 이 hash function에서 같은 queue로 배정받았는데 그 queue가 요즘 linux엔
+각 cpu로 배정받게되어 있단 말이야. 그러면 그 cpu가 iperf3를 돌리는 곳이라면?
+ksoftirqd가 쌓이겠지. 이 cpu가처리못하는 거 다른쪽에서 처리했으면 하니까.
+그런관계인거같다.
+```
+This is pretty limited, as it ignores the port numbers. Many NICs allow customization of the hash. Again, using ethtool we can select the tuple (src IP, dst IP, src port, dst port) for hashing:
+
+receiver$ ethtool -N eth2 rx-flow-hash udp4 sdfn
+Cannot change RX network flow hashing options: Operation not supported
+Unfortunately our NIC doesn't support it - we are constrained to (src IP, dst IP) hashing.
+```
+<https://blog.cloudflare.com/how-to-receive-a-million-packets/>
 ### 2020-11-19 미팅
