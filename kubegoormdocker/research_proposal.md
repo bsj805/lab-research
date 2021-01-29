@@ -67,4 +67,6 @@ https://github.com/bsj805/lab-research/blob/master/kubernetes/createDockerfile.m
 이 당시에는 노드가 단 하나밖에 없었지만, 노드개수가 늘어나면 또 모를일이라고 생각한다.
 
 
+![image](https://user-images.githubusercontent.com/47310668/106220134-2be68280-621e-11eb-858f-78d30f20dd1a.png)
 
+그렇다면 guarantee pod만 하면? 달라질까?
