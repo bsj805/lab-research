@@ -1,6 +1,7 @@
 ### 리눅스 커널 코드 분석 (네트워킹)
 <https://www.cs.unh.edu/cnrg/people/gherrin/linux-net.html> 
 2021 02 16.
+![image](https://user-images.githubusercontent.com/47310668/108203815-57e28d00-7166-11eb-8226-a6604e9f8921.png)
 
 #### 2.1 network traffic path
 패킷이 어떻게 이동하는지를 먼저 보자면 , 먼저 IP is the heart of the Linux messaging system.
@@ -100,6 +101,14 @@ can also delete routes.
 이게 loopback device configuration 인데, inter-process communication을 위해 모든 컴퓨터는 세팅을 해야해.
 
 
+/etc/sysconfig/network 에 설정된게 부팅될 때 처음 설정 된 것.
+이 variable을 setting하면, file은 ethernet card를 위한 env var을 설정한다. 네트워크 스크립트가 네트워크 디바이스를 configure하는 것.
+네트워크 스크립트는 ifconfig program을 run 해서 device를 start 시킨다. 마지막으로 스크립트는 route program을 실행시켜서
+default gateway (route)를 추가하고, /etc/sysconfig/static-routes 파일의 route를 추가한다. 
+
+#### 3.3.3 network routing computer
+이건 우리의 경우는 아니다. 위의 네트워크 연결상태를보면, 모든 lan 사용자들은 (cs.u.edu subnet) 
+viper interface로 들어가 dodge interface를 통해 인터넷과 연결된다. 그를 위한 네트워크 세팅이다.
 
 
 
