@@ -84,6 +84,22 @@ network initialization script는 environment variable을 설정해서 host compu
 네트워크 스크립트가 끝나면 FIB는 특정 호스트나 네트워크에 대한 route를 가지고 있고, routing cache나 neighbour table은 empty
 Traffic이 flow하기 시작하면, kernel은 그 빈 곳을 채우겠지. 
 
+#### 3.2.2 ifconfig
+
+ifconfig는 어떤 interface device를 쓸 지 configure한다. 각 device에 IP 주소를 주고, netmask를 주고, boradcast address를 provide한다.
+
+device는 각자 initialization function을 실행하고, register its interrupts and service routines with the kernel.
+어떻게 해줘야하는지를 등록한다. 
+
+인터페이스는 각각 commandline에서 setting을 바꿀 수 있고 (ifconfig로) 
+
+"route"프로그램은 simply adds predefined routes for interface devices to FIB
+can also delete routes.
+
+/etc/sysconfig/network-scripts/ifcfg-lo
+이게 loopback device configuration 인데, inter-process communication을 위해 모든 컴퓨터는 세팅을 해야해.
+
+
 
 
 
