@@ -110,7 +110,7 @@ default gateway (route)를 추가하고, /etc/sysconfig/static-routes 파일의 
 이건 우리의 경우는 아니다. 위의 네트워크 연결상태를보면, 모든 lan 사용자들은 (cs.u.edu subnet) 
 viper interface로 들어가 dodge interface를 통해 인터넷과 연결된다. 그를 위한 네트워크 세팅이다.
 
-
+ 
 
 
 
