@@ -110,7 +110,35 @@ default gateway (route)를 추가하고, /etc/sysconfig/static-routes 파일의 
 이건 우리의 경우는 아니다. 위의 네트워크 연결상태를보면, 모든 lan 사용자들은 (cs.u.edu subnet) 
 viper interface로 들어가 dodge interface를 통해 인터넷과 연결된다. 그를 위한 네트워크 세팅이다.
 
- 
+
+####  4.2 socket structure
+
+<https://www.kernel.org/doc/htmldocs/networking/API-struct-socket.html>
+와 같이 struct socket 에 대한 설명이 있는데,
+struct socket {
+  socket_state state;
+  short type;
+  unsigned long flags;
+  struct socket_wq __rcu * wq;
+  struct file * file;
+  struct sock * sk;
+  const struct proto_ops * ops;
+};  
+
+*ops 이 친구가 contains pointers to protocol specific functions for implementing general socket behavior.
+
+즉 sendmsg() 이런걸 socket에서 실행시키려면 프로토콜 별로 다른 함수가 define 되어있을 텐데, 그걸 다르게
+point하게 해서 inet_sendmsg()를 부를 수 있게 한다. ops->sendmsg 는 inet_sendmsg()를 point하게 하듯.
+
+struct file은 struct inode를 가지고 있는데 파일 inode를 가리키게 해서, 이 socket이랑 함께 associate된 파일을 가리킨다.
+
+이건 BSD 소켓이야.
+struct sock *sk 이것이 inet socket이야. INET socket이 BSD 소켓과 합쳐져있는것.
+Inet socket이 struct sock에 속해있는데, #include/net/sock.h 에 있다.
+<https://www.kernel.org/doc/htmldocs/networking/API-struct-sock.html>
+
+
+
 
 
 
