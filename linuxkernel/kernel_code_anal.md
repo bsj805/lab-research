@@ -148,4 +148,6 @@ socket 생성될 때 packet buffer가 생성되는데,
 socket의 struct 중 protocol 이라고 header부분이 있어. 그 헤더를 채워넣으면 TCP 단에서 skbuf가 생성된 것.
 이걸 이제 IP layer (network layer) 로 보내면 IP도 자기 header를 채워넣고 하겠지. ( skbuf에서 IP header 변수와 tcp header변수가있어서 채워넣기만 하면돼. 또 다른 패킷을 만드는게아니라)
 
+아 그 패킷을 우리가 struct sk_buff skb라고 표현했잖아. 이게 socekt buffer야. data를 담고있을 수 있잖아.
+그래서 transport layer 에서 socket buffer을 create해서 outgoing packet을 이 new buffer에 application buffer의 데이터를 copy해 오고, 
 
