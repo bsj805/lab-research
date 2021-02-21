@@ -141,5 +141,11 @@ Inet socket이 struct sock에 속해있는데, #include/net/sock.h 에 있다.
 
 
 
+#### 5. sending messages
+![s_tx](https://user-images.githubusercontent.com/47310668/108613356-85645a80-7434-11eb-8d3e-9055e94cd58f.jpg)
+
+socket 생성될 때 packet buffer가 생성되는데,
+socket의 struct 중 protocol 이라고 header부분이 있어. 그 헤더를 채워넣으면 TCP 단에서 skbuf가 생성된 것.
+이걸 이제 IP layer (network layer) 로 보내면 IP도 자기 header를 채워넣고 하겠지. ( skbuf에서 IP header 변수와 tcp header변수가있어서 채워넣기만 하면돼. 또 다른 패킷을 만드는게아니라)
 
 
