@@ -151,3 +151,33 @@ socket의 struct 중 protocol 이라고 header부분이 있어. 그 헤더를 �
 아 그 패킷을 우리가 struct sk_buff skb라고 표현했잖아. 이게 socekt buffer야. data를 담고있을 수 있잖아.
 그래서 transport layer 에서 socket buffer을 create해서 outgoing packet을 이 new buffer에 application buffer의 데이터를 copy해 오고, 
 
+app에서 System call이 socket에 data를 쓰는데, 이걸로 transport layer에가서 skbuf (socket buffer)가 생성된다는 거지.
+IP layer에서 fragment the packet if required.?
+
+IP layer (network layer)에서 link layer 함수로 패킷을 전달하는데, 이 link layuer함수는 packet을 sending device의 xmit queue (transmission queue 전송 queue, rx queue가 수신큐) 
+and makes sure the device knows that it has traffic to send. 이게 IRQ중 하나겠지? 
+마지막으로, device (NIC) tells the bus to send the packet.
+
+#### 5.2 Sending Walkthrough
+
+##### 5.2.1 writing to socket.
+app layer에서 socket에 data를 작성,
+socket은 location of data를 이용 message header를 채운다.
+socket의 상태확인
+INET SOCKet의 함수를 실행시켜서 pass the message header.
+___________________________
+socket buffer인 skbuf를 만드는 것은 UDP나 TCP나 , 역시 transport layer.?
+UDP는 header만 create한다고 써있긴한데, UDP는 IP build, transmit function을 부른다.
+TCP는 skbuf를 만들고,(packet buffer) user space로부터 payload를 copy해오고, packet을 outbound queue에 추가하고, ACK SYN 같은 tcp header를 넣고,
+call IP transmit function
+
+
+IP layer에서는 UDP의 경우packet buffer을 생성해주고, TCP의 경우에는 있는 route to destination을 확인하고, fill in the packet IP header.
+copy transport header and payload from user space, send packet to the dst route's device output function.
+이제 data link layer. NIC 에서는 packet을 device output queue에 넣었고, 
+wake the device하고, device driver에서 scheduler가 run하기를 기다린다음, test the device.
+Link header를 전송, bus를 통해서 transmit packet.
+
+#### 6. Receiving Messages
+
+![r_rx](https://user-images.githubusercontent.com/47310668/108688522-5dabea00-753b-11eb-9ba0-a7eb0cfc21ec.jpg)
