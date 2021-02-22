@@ -181,3 +181,73 @@ Link header를 전송, bus를 통해서 transmit packet.
 #### 6. Receiving Messages
 
 ![r_rx](https://user-images.githubusercontent.com/47310668/108688522-5dabea00-753b-11eb-9ba0-a7eb0cfc21ec.jpg)
+incoming message는 medium에 packet이 도착하면서 device가 메세지가 준비되었다는 interrupt를 보내면서 시작된다
+
+왼쪽 아래 모서리가 시작점이 되는데, Device는 storage space를 allocate 해서 bus에게 message를 그 공간에 넣으라고 한다.
+그러면 packet을 link layer로 올리고, link layer은 패킷을 backlog queue에 넣는다. 
+그다음 'bottom-half' 가 실행되도록 하는데, 이는 리눅스 시스템 중 하나로, interrupt 동안 처리되는 work를 minimize할 수 있다.
+interrupt 동안 많은 processing을 하는게 좋은 일이 아니다. running process를 방해하기 때문. 대신, interrupt handler는 top-half와 bottom-half를 가지고 있어서,
+interrupt가 도착했을 때 top-half 가 run 하며 device queue에서 kernel memory로 옮기는 정도의 일을 하고, 
+scheduler에 의해 시간을 받게 되면, bottom half가 실행될 수 있는 것이다.
+
+packet이 NIC에 닿으면, device는 ethernet header를 체크 해서, 패킷을 저장한다. 그 패킷을 kernel memory (backlog queue) 에 옮기면 top half가 끝나는 것이다.
+
+Scheduler에 의해 시간을 받으면, bottom half가 run 되는데,
+backlog queue에서 packet을 pop 해서, known protocol (typically IP) 로 match 한 다음, 해당 protocol 의 receive function을 호출한다.
+IP layer는 해당 패킷의 error를 체크한다음, route하거나 ( 다른 ongoing queue로 가), transport layer의 TCP나 UDP 함수를 호출하게 된다.  
+TCP나 UDP 단에서는 다시 에러를 체크하고, 패킷에 명시된 port와 associate 된 socket을 look up 한다음, 해당 socket의 receive queue에 packet을 넣는다.
+Socket queue 에 packet이 들어온 다음, socket은 app process를 wake up 시켜서, read syscall 에서부터 return을 받고, (blocked syscall이라면) 
+queue로 부터 its own buffer에 packet의 데이터를 집어넣는다. 
+받을 때의 defragmentation은 ip_rcv()
+
+#### 7 IP forwarding
+
+![image](https://user-images.githubusercontent.com/47310668/108701034-cb134700-754a-11eb-8a40-211395c5872c.png)
+
+위와는 달리 다른 host로 가는 패킷을 받은 경우이다.
+Forwarded packet은 interrupt from device로 부터 온다. Device는 storage space를 allocate 하고, tells the bus to put the message into that space. (Skbuf로 추정) 
+그런다음 link layer로 보내서, backlog queue에 넣고, returns control to the current process. 현재의 프로세스는 interrupt 받고 있었으니 다시 돌려주는거 권한.
+
+#### 8 Basic IP Routing
+
+라우팅을 어떻게 하는지, 어떻게 routing table이 세워지고 업데이트되는지,를 알려준다.
+라우팅엔 세가지 종류
+Neighbour table: ethernet으로 직접 연결되어있는  (directly connected via LAN)
+two for IP networking
+FIB table, Routing cache.
+
+![image](https://user-images.githubusercontent.com/47310668/108706493-0b29f800-7552-11eb-9caf-58cf60544536.png)
+
+
+Neighbor table은 어떤 device가 어떤 protocol로 연결되어있는지 정보를 가진다. Linux는 ARP (address resolution protocol)을 이용해서 maintain and update the table.
+따라서 일정기간동안 안 쓰면, 사라지게 만들 수도 있다. entry에서.
+
+
+이런 table들에서 u32 (host byte order) and _u32 (network byte order_)로 어림짐작이 가능하다.ntohl 이런함수 쓰는이유
+#### 9 Dynamic routing with routed
+
+어디로 패킷을 보내야하는 지 알아야되는 routing의 역할을 해야할 때에
+
+#### 10 Editing Linux Source code
+
+#### 10.1 Linux Source Tree
+
+리눅스의 source 
+code는 /usr/src directory에 위치하게 된다. 하나의 soft link 가 존재하게 된다. 현재 버전의 코드에.
+/usr/src/linux/에 overview of directory structure 설명이 써져있다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
