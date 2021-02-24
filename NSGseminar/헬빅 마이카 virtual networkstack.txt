@@ -1,0 +1,14 @@
+NetKernel: Making Network Stack
+Part of the Virtualized Infrastructure
+
+tenant 즉 VM쪽에 network stack이 있어 -> 그걸
+host쪽에서 packet을 처리하고 넘기도록 해보자.
+
+OPERATOR가 network stack module을 가지도록 한다.
+하이퍼바이저가 각 VM의 virtual address space
+permission to access of address space 를 관리한다.
+
+NSM을 통하면VM1 에서 VM2 로 가는 traffic을 알 수 있어.
+
+shared memory processing은 메시지 사이즈가 커질수록
+(패킷 사이즈가 커질수록) throughput이증가한다고 볼 수 있다.

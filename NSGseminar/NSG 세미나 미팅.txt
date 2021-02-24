@@ -1,0 +1,29 @@
+가상화나 컨테이너 환경
+
+resource를 어떻게 공유할 것인가.
+
+resource sharing with containerization and virtualization
+
+resource management, minimizing latency. 
+
+performance향상에 대한 이슈. container이 효율적이지는 않아.
+이쪽에서 연구주제를 찾아보자.
+
+cross talk issue.
+
+명시적으로 자원을 분할한 2 노드가있을 때
+한쪽의 프로세스가 손해를 보는 상황 : crosstalk issue.
+GPU cluster에 그런 crosstalk issue가 발생할 수 있다.
+
+RDMA Queue pair , PCIe sharing ,GPU 모두다 crosstalk issue가발생할 수 있다.
+
+disaggregation은 datacenter 안에 서버들이 많을때 각각 GPU를 장치하고 있을거야
+workload가 들어오는데, 
+cpu 사용량, GPU 사용량, storage 사용량을 봤을때
+load를 보면, GPU만 혼자 튀는 상황에서 설비증강을 어떻게 할까?
+서버를 결국 추가해야겠지 GPU가 더 필요한거니까.
+근데 그 GPU하나를 위해서 충분한 CPU랑 storage또한 추가하게 되버려.
+남아도는 자원이 아까워.
+똑같은 상황에서 네트워크에 GPU만 꽂아서 사용해볼 수 있을까?
+
+GPU나 FPGA disaggregation. 

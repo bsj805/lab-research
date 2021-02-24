@@ -1,0 +1,16 @@
+2월 24일 세미나
+netvm with dpdk
+
+VM 각각에 ring buffer을 두고, hypervisor단의 dpdk를 통해서 
+패킷을 특정 descriptor에 담으면 ring buffer에 그 descriptor정도만넘겨서
+각각의 컨테이너가 읽기가 가능하게 한다.
+
+huge page memory sharing
+이 page에 있는 packet (dpdk로 전달되어있는) 을
+app에서 access해서 가져온다.
+
+SRIOV를 쓰면 DPDK를 VM각각으로 띄워놓으면 VM에서
+패킷처리를하는건데,
+hypervisor에 하나의 DPDK (netVM)을 띄워놓고, 이 descriptor에 대해서
+shared memory에 
+
