@@ -206,11 +206,58 @@ https://www.reddit.com/r/linuxhardware/comments/exovc6/where_do_i_add_intel_iomm
 이걸로 성공
 
 sudo ./dpdk-devbind.py --bind=uio_pci_generic 03:00.1
+![image](https://user-images.githubusercontent.com/47310668/109252066-f5595300-782f-11eb-9682-51fd7e8d6020.png)
 
-meson -Denable_kmods=true --reconfigure 을 이용해서 reconfigure 성공
+이렇게된다.
+sudo ./build/helloworld -c 4 -n 4
+를하면 -c 로 했을땐 bitmap으로 cpu지정해준거라 100. 즉 cpu 2번사용. 
+<https://doc.dpdk.org/guides/linux_gsg/build_sample_apps.html> 에 나온다.
+ Intel에서는 이 옵션을 VT-d(Virtualization Technology for Directed I/O))라고 부르고 AMD에서는 IOMMU(I/O Memory Management Unit)라고 부른다. 두 경우 모두 새 CPU가 PCI의 실제 주소를 게스트의 가상 주소에 맵핑한다. 이 맵핑이 발생하면 하드웨어가 액세스를 보호하게 되며, 결과적으로 게스트 운영 체제에서는 가상화되지 않은 시스템인 것처럼 장치를 사용할 수 있다. 게스트를 실제 메모리에 맵핑하는 기능 외에도 다른 게스트(또는 하이퍼바이저)의 액세스를 차단하는 분리 기능이 제공된다. [2] => DMA
+ <https://frontjang.info/entry/SRIOVSingle-Root-IO-Virtualization%EC%97%90-%EB%8C%80%ED%95%98%EC%97%AC-1-%EC%86%8C%EA%B0%9C>
+ 
+ 
+ 
+ 즉 가상의 device처럼 쓰게 해주는 VF, pci에 직접연결된 것 처럼 쓰게해주는 PF
 
 
 
+VF를 만들면 중간의 VFIO 나 IGB_UIO 이런게 컨테이너와의 연결을 돕는다. 
+VFIO는 virtual function IO, UIO는 userspace IO
+VFIO는 direct device access to userspace by IOMMU 
+
+SR-IOV는 PCI I/O 가상화. SR-IOV는 VM과 Device를 직접 연결해주는 기술, 
+VFIO는 process랑 device를 연결해주는 기술
+
+IOMMU는 DMA access from device가 appropriate memory location으로만 가도록 하는 역할
+이게 user level driver가 VFIO를 쓰면서 inappropriate memory에 접근하지 않도록함
+
+리눅스 커널에서 유저 영역에서 직접 장치에 접근할 수 있는 플랫폼을 만들었다.
+장치드라이버를 커널에 안두고 유저 영역에 드라이버를 둘 수있는 형태.커
+
+https://jhkim3624.tistory.com/85?category=622798
+DPDK는 Data Plane Development Kit의 약자로, Intel 아키텍쳐 기반 고성능 패킷처리 최적화를 위한 시스템 소프트웨어이다. 
+
+DPDK는 크게 Data Plane Library들과 패킷 처리 최적화를 위한 NIC 드라이버의 집합으로 구성되어 있다.
+
+
+
+DPDK의 가장 큰 특징은 그림에서 보는 바와 같이 기존 리눅스 기반의 패킷처리과정과는 다르게 커널에서 패킷처리과정을 거치는게 아니라 어플리케이 션이 User Space의 Intel DPDK 라이브러리 API와 EAL(Environment Abstraction Layer)을 사용하여 리눅스 커널을 통과하여 직접 NIC에 엑세스 할 수 있는 통로를 제공한다는 것이다. 
+
+또한, DPDK는 리눅스 User Space의 Data Plane API 뿐만 아니라, 패킷처리에 최적화된 NIC 드라이버를 제공한다.
+
+
+
+<https://docs.openstack.org/openstack-ansible-os_neutron/latest/app-openvswitch-dpdk.html>
+
+vfio가 vt_d가 안켜져서였는데 bios에서설정했는데 왜 안켜진다고 하지 했는데 linux boot kernel에서도 vt_d (intel의 iommu) 를 설정해줘야하더라구요
+
+https://docs.openstack.org/openstack-ansible-os_neutron/latest/app-openvswitch-dpdk.html
+와 같이 써주어야하는데, 
+https://marcokhan.tistory.com/251
+처럼 /etc/default/grub 에서 볼 수 있다.
+
+fd03f718-780c-11eb-a306-4f9b4ffd71b6
+이걸 --vfio-vf-token EAL파라미터로 DPDK에게 넘겨줘야한다는데 실행할때?
 
 
 
