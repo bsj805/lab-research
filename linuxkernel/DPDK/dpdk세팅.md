@@ -197,6 +197,16 @@ IOMMU가 on 되어있어야 하는데, bios상에서 off되어있다
 VT-d도 되어있어야 한다나봐.
 
 
+https://www.reddit.com/r/linuxhardware/comments/exovc6/where_do_i_add_intel_iommuigfx_off/
+를이용해서 iommu=on을 해보았어.
+
+
+
+결국 pci_generic으로 갔어.
+이걸로 성공
+
+sudo ./dpdk-devbind.py --bind=uio_pci_generic 03:00.1
+
 
 
 
