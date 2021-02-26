@@ -207,7 +207,7 @@ https://www.reddit.com/r/linuxhardware/comments/exovc6/where_do_i_add_intel_iomm
 
 sudo ./dpdk-devbind.py --bind=uio_pci_generic 03:00.1
 
-
+meson -Denable_kmods=true --reconfigure 을 이용해서 reconfigure 성공
 
 
 
