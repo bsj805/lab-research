@@ -261,6 +261,6 @@ fd03f718-780c-11eb-a306-4f9b4ffd71b6
 
 https://github.com/openvswitch/ovs/blob/master/Documentation/intro/install/dpdk.rst#id3
 로 실행
-
+export LD_LIBRARY_PATH=/usr/lib/ 이걸 더해주어야했다.
 
 
