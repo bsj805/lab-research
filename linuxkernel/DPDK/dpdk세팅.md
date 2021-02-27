@@ -259,7 +259,8 @@ https://marcokhan.tistory.com/251
 fd03f718-780c-11eb-a306-4f9b4ffd71b6
 이걸 --vfio-vf-token EAL파라미터로 DPDK에게 넘겨줘야한다는데 실행할때?
 
-
+https://github.com/openvswitch/ovs/blob/master/Documentation/intro/install/dpdk.rst#id3
+로 실행
 
 
 
