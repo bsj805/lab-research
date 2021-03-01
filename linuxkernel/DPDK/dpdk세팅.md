@@ -264,3 +264,88 @@ https://github.com/openvswitch/ovs/blob/master/Documentation/intro/install/dpdk.
 export LD_LIBRARY_PATH=/usr/lib/ 이걸 더해주어야했다.
 
 
+https://software.intel.com/content/www/us/en/develop/articles/using-docker-containers-with-open-vswitch-and-dpdk-on-ubuntu-1710.html
+sudo update-alternatives --set ovs-vswitchd /usr/lib/openvswitch-switch-dpdk/ovs-vswitchd-dpdk
+
+https://ubuntu.com/server/docs/openvswitch-dpdk
+
+LD_LIBRARY_PATH (/lib/libbpf.so.0is not a symoblic link error)는 
+/etc/ld.so.conf.d 디렉토리에서 ls를 해보면, 공유 라이브러리를 찾는 ld.so 에 대한 디렉토리 목록을 포함한다.
+만약 여기에 없으면 LD_LIBRARY_PATH에 검색경로로 디렉토리를 추가해 주고, .bash_profile이나 .bashrc에 추가해준 뒤에
+ldconfig로 적용시켜준다. 그래서 ninja 한다음에 ldconfig를 해주는거였어.
+원래 내 bashrc에
+:/usr/llb/ 도 있었음
+/usr/lib에서의 libbpf.0.3.0 에 대한 symbolic link를 /usr/lib64처럼 제작해줌
+
+
+![image](https://user-images.githubusercontent.com/47310668/109462928-8c7c1000-7aa7-11eb-83b8-3ef234ba3b56.png)
+
+
+일단 나는 static으로 해봤어.
+cd /usr/src/dpdk-20.11
+<<https://docs.openvswitch.org/en/latest/intro/install/dpdk/?highlight=dpdk>
+이거 기준으로 따라하기.
+hugepage 설정은 sudo vi /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+grep HugePages_ /proc/meminfo 로 찾아볼수있다
+
+
+mount를 하고, dmesg로 iommu를 확인한다.
+
+
+yeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo modprobe vfio-pci
+drwxr-xr-x   2 root root    4096  3월  1 12:12 meson-logs                                    │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ /usr/bin/chmod a+x /dev/vfio
+drwxr-xr-x  10 root root    4096  3월  1 12:10 meson-private                                 │/usr/bin/chmod: changing permissions of '/dev/vfio': Operation not permitted
+drwxr-xr-x   2 root root    4096  3월  1 12:10 meson-uninstalled                             │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod a+x /dev/vfio
+-rw-r--r--   1 root root   11535  3월  1 12:10 rte_build_config.h                            │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod 0666 /dev/vfio/*
+drwxr-xr-x   2 root root    4096  3월  1 12:10 usertools                                     │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ echo $DPDK_DIR
+byeon@black-Z10PA-U8-Series:/usr/src/dpdk-20.11/build$ cd ..                                 │
+byeon@black-Z10PA-U8-Series:/usr/src/dpdk-20.11$                                             │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ cd /usr/src/dpdk-20.11
+
+
+sudo /usr/share/openvswitch/scripts/ovs-ctl start 로
+ovs-vsctl: unix:/usr/local/var/run/openvswitch/db.sock: database connection failed (No such 
+  system binaries: /usr/local/sbin (--sbindir, OVS_SBINDIR)                                  │file or directory)
+
+
+이문제해결해보려고했음
+
+어 그러니까 된다.
+
+https://ovs-dpdk-1808-merge.readthedocs.io/en/latest/howto/docker.html
+에 따라서,
+export PATH=$PATH:/usr/local/share/openvswitch/scripts 아까 했었는데
+PATH 맨 뒤에 /usr/local/share/openvswitch/python
+도 더해주어야한다.
+
+byeon@black-Z10PA-U8-Series:~/ovs$ echo $PATH
+byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │/home/byeon/.local/bin:/home/byeon/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/
+byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda-10.1/bin:/usr/local/cud
+byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │a-10.1/bin:/usr/local/cuda-10.1/bin:/usr/local/share/openvswitch/scripts:/usr/local/share/op
+byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │envswitch/python
+
+현재 path는 이래야한다.
+
+sudo pip3 install FLASK하고,
+![image](https://user-images.githubusercontent.com/47310668/109475691-5a73a980-7ab9-11eb-9569-55c18db8299b.png)
+
+이것처럼 cpu 100퍼잡아먹어
+ovs를 구성하고 ovs bridge에 dpdk를 붙인 nic를 연결한거야.
+<https://ovs-dpdk-1808-merge.readthedocs.io/en/latest/howto/dpdk.html>
+
+![image](https://user-images.githubusercontent.com/47310668/109475839-855dfd80-7ab9-11eb-85c7-b8d48646dc20.png)
+
+lcore mask랑 threadmask를
+0x00001 로 해놓은상태
+pmd cpumask도 0x00001
+
+See the section Performance Tuning for important DPDK customizations.
+
+
+어딜보라는걸까.. 
+<https://docs.openvswitch.org/en/latest/intro/install/dpdk/?highlight=dpdk>
+일단 이거 베이스로 출발하긴했는데,
+
+NIC를 붙이고서는
+https://docs.openvswitch.org/en/latest/howto/dpdk/
+일단 이거대로?
+
