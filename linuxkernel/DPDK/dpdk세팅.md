@@ -290,16 +290,15 @@ grep HugePages_ /proc/meminfo 로 찾아볼수있다
 
 
 mount를 하고, dmesg로 iommu를 확인한다.
+dmesg | grep iommu=pt
 
-
-yeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo modprobe vfio-pci
-drwxr-xr-x   2 root root    4096  3월  1 12:12 meson-logs                                    │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ /usr/bin/chmod a+x /dev/vfio
-drwxr-xr-x  10 root root    4096  3월  1 12:10 meson-private                                 │/usr/bin/chmod: changing permissions of '/dev/vfio': Operation not permitted
-drwxr-xr-x   2 root root    4096  3월  1 12:10 meson-uninstalled                             │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod a+x /dev/vfio
--rw-r--r--   1 root root   11535  3월  1 12:10 rte_build_config.h                            │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod 0666 /dev/vfio/*
-drwxr-xr-x   2 root root    4096  3월  1 12:10 usertools                                     │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ echo $DPDK_DIR
-byeon@black-Z10PA-U8-Series:/usr/src/dpdk-20.11/build$ cd ..                                 │
-byeon@black-Z10PA-U8-Series:/usr/src/dpdk-20.11$                                             │byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ cd /usr/src/dpdk-20.11
+byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo modprobe vfio-pci
+│byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ /usr/bin/chmod a+x /dev/vfio
+│/usr/bin/chmod: changing permissions of '/dev/vfio': Operation not permitted
+│byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod a+x /dev/vfio
+│byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ sudo /usr/bin/chmod 0666 /dev/vfio/*
+│byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ echo $DPDK_DIR
+│byeon@black-Z10PA-U8-Series:/etc/sysctl.d$ cd /usr/src/dpdk-20.11
 
 
 sudo /usr/share/openvswitch/scripts/ovs-ctl start 로
@@ -307,7 +306,13 @@ ovs-vsctl: unix:/usr/local/var/run/openvswitch/db.sock: database connection fail
   system binaries: /usr/local/sbin (--sbindir, OVS_SBINDIR)                                  │file or directory)
 
 
-이문제해결해보려고했음
+이문제해결해보려고했음 -><https://stackoverflow.com/questions/28506053/open-vswitch-database-connection-failure-after-rebooting>
+sudo /usr/share/openvswitch/scripts/ovs-ctl start ->여기에 ovs-ctl
+
+나
+/usr/local/share/openvswitch/scripts/ovs-ctl start 로 해바. -> 이게 내 $DB_SOCK 에서 db.sock이 가리킬부분.
+
+
 
 어 그러니까 된다.
 
@@ -318,12 +323,17 @@ PATH 맨 뒤에 /usr/local/share/openvswitch/python
 도 더해주어야한다.
 
 byeon@black-Z10PA-U8-Series:~/ovs$ echo $PATH
-byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │/home/byeon/.local/bin:/home/byeon/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/
-byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda-10.1/bin:/usr/local/cud
-byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │a-10.1/bin:/usr/local/cuda-10.1/bin:/usr/local/share/openvswitch/scripts:/usr/local/share/op
-byeon@black-Z10PA-U8-Series:/usr/local/share/openvswitch$                                    │envswitch/python
+/home/byeon/.local/bin:/home/byeon/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/
+│bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda-10.1/bin:/usr/local/cud
+a-10.1/bin:/usr/local/cuda-10.1/bin:/usr/local/share/openvswitch/scripts:/usr/local/share/op
+envswitch/python
 
 현재 path는 이래야한다.
+export PATH=$PATH:/usr/local/cuda-10.1/bin:/usr/local/share/openvswitch/scripts:/usr/local/share/openvswitch/python
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-10.1/lib64:/usr/lib/
+export RTE_SDK=/usr/src/dpdk-20.11/
+export RTE_TARGET=x86_64-native-linuxapp-gcc
+.bashrc에 지정 
 
 sudo pip3 install FLASK하고,
 ![image](https://user-images.githubusercontent.com/47310668/109475691-5a73a980-7ab9-11eb-9569-55c18db8299b.png)
@@ -348,4 +358,124 @@ See the section Performance Tuning for important DPDK customizations.
 NIC를 붙이고서는
 https://docs.openvswitch.org/en/latest/howto/dpdk/
 일단 이거대로?
+
+만약 stall 되는문제가 있다면 /usr/share/openvswitch/scripts 에서 ovs-ctl stop 시키고 해봐
+아마 중복된 서버가 있어서 못한걸꺼야.
+ovsdb-server.log , ovs-vswitchd.log 로그를 보려면
+
+/usr/local/var/log/openvswitch를 보면돼.
+
+![image](https://user-images.githubusercontent.com/47310668/109652254-e31a4480-7ba2-11eb-959b-cb792662909f.png)
+<https://www.youtube.com/watch?v=VXmoyCMyEtA>
+
+
+ovs-vsctl get Interface dpdk0 statistics  interface이름이 dpdk0인거야.
+![image](https://user-images.githubusercontent.com/47310668/109653114-f5e14900-7ba3-11eb-8b26-8c963d3c95a9.png)
+
+흠, 이미지를 보면 ,  <https://arthurchiao.art/blog/ovs-deep-dive-3-datapath/>
+OVS에는 2 datapath that I can choose. 
+kernel datapath and userspace datapath
+
+먼저 hw에서 packet이 들어오면, datapath를 kernel단에서 보고 해당안되면 system route로 넘기고,
+아니라면 netlink dpif 를 참조해서 route info를 찾는다. 혹은 netdev dpif로 handle packet한다.
+그걸 dpif로 보내면, vswitchd랑 주고받고, OVSDB랑 주고받아서 끝낸다?
+
+
+
+ovs-dpdk는 userspace DATAPATH로 불리운다. 
+packet forwarding이랑 processing이 user space에서 이뤄진다.
+
+The Open vSwitch kernel module allows flexible userspace control over flow-level packet processing on selected network devices. It can be used to implement a plain Ethernet switch, network device bonding, VLAN processing, network access control, flow-based network control, and so on.
+
+The kernel module implements multiple datapaths (analogous to bridges -브릿지와 유사하게 ), each of which can have multiple vports (analogous to ports within a bridge 브릿지에 포트를갖고있는 것처럼 ). Each datapath also has associated with it a flow table that userspace populates with flows that map from keys based on packet headers and metadata to sets of actions. The most common action forwards the packet to another vport; other actions are also implemented. 가장 흔한게 packet을 또다른 vport로 forward하는거.
+
+
+When a packet arrives on a vport, the kernel module processes it by extracting its flow key and looking it up in the flow table. If there is a matching flow, it executes the associated actions. If there is no match, it queues the packet to userspace for processing (as part of its processing, userspace will likely set up a flow to handle further packets of the same type entirely in-kernel)
+
+vport에 packet이 도착하면, kernel module은 flow key를 extract하고, flow table에서 봐서 kernel module이 process한다.
+맞는 flow가 있으면 flow table에 정의 된 action을 하고 no match라면, packet을 userspace에 queue해서 process하게 한다. 
+
+
+
+OVS bridge는 2 resource를 관리한다. datapath랑 physical or virutal network devices attached to it (netdev) ==network devices
+
+of proto가 OVS bridge implementation이고, 거기에 netdevice가 붙고 그게 physical nic랑 붙나봐
+of proto provider도 ovs bridge
+datapath management가 dpif, dpif-provider
+network devices management ==netdev, netdev-provider
+
+-https://arthurchiao.art/blog/ovs-deep-dive-1-vswitchd/ - ovs source code
+![image](https://user-images.githubusercontent.com/47310668/109657902-5a52d700-7ba9-11eb-8668-5497c742ea09.png)
+
+netdev provider의 일부로 DPDK가 있는거다.
+netdev provider implements an OS- and hardware-specific interface to "network devices", (NIC == ethernet device)
+
+OVS는 스위치의 각 포트를 netdev처럼 열 수 있다.
+
+
+OVSdb server가 configureation
+/etc/openvswitch/conf.db
+
+OVSDB는 switch-level configuration도 가진다.
+bridges, interfaces, tunnel info
+<https://arthurchiao.art/blog/ovs-deep-dive-2/>
+ovs-vswitchd 에게 OVSDB protocol을 전달한다. 
+CLI tools: 
+ovs-vsctl : modifies DB by configuring ovs-vswitchd
+ovsdb-tool: DB management for example: create/compact/convert DB, show DB logs
+
+
+OVS patch port는 한 ovs switch port에서 다른 하나로 연결한것과 같다. 즉 linux veth pair같은 것이다.
+patch port는 veth pair랑은 달리 cannot capture packets
+
+
+#### OVS netdev.
+
+network device (physical NIC) has to ends/parts. one end works in kernel, responsible for sending & receiving.
+and the other end in userspace, which manages the kernel parts such as changing device MTU size, disabling/enabling queues.
+kernel과 userspace 간 communication은 through netlink or ioctl 
+
+##### linux netdev
+Linux netdevs are network devices (the userspace part) on Linux platform, call the send() method on a netdev will send the packet from userspace to linux kernel (see linux_netdev_send()), then the packet will be handled by the kernel part (device drivers) of that device. It includes the following three types:
+하나의 NIC라고 생각해봐. send를 호출했을때 linux kernel의 syscall이 호출되고, kernel에 의해서 packet이 handle되고.
+
+
+Actually, a patch port only receives packets from other ports of ovs bridge (ofproto), and the (ONLY?) action for incoming packets from a patch port to datapath, is to “OUTPUT” it to the peer side of this patch port. In this way, it connects the two sides (usually, two OVS bridges).
+
+The “OUTPUT” action just delivers the packet from one vport to another, no memcpy, no context switching, and all work done in datapath, no kernel network stack involved.
+
+Bridge maintains a forwarding table, which stores {src_mac, in_port} pairs, and forwards packets (more accurately, frames) based on dst_mac.
+
+
+L2 : data link -> dataplane, traffic forwarding
+L3 : IP , network controlplane , management,
+L4 : transport tcp
+
+internal port가 L3 based고, socket-based이며, (kernel stack based), outside accessible하니까, virtual NIC으로 쓰여서
+VM이나 container를 지원해줄 수 있다.
+
+컨테이너들은 각자의 network namespace가 있기 때문에, container를 OVS에 directly connect가 안돼.
+default namespace에서나 작용한다. 
+그래서 typical way to solve this is to create a veth pair. 한 end를 container에 두고, 다른 end를 OVS에 붙이는방법이었지.
+
+![image](https://user-images.githubusercontent.com/47310668/109664476-832a9a80-7bb0-11eb-81ff-a6c614e47d91.png)
+이렇게 말이야.
+performance issue가 있어서, 
+This is simple and straitforward in concept, but will suffer from performance issues. Could container be connected to OVS directly? The answer is yes! We will use internal port to accomplish this.
+
+container각각에 internal port를 두고, OVS에 그걸 부착하면되지않을까?
+정확해.
+<https://arthurchiao.art/blog/ovs-deep-dive-6-internal-port/>
+
+#### Connect container to OVS via OVS Internal Port
+The main steps are as follows:
+
+get the container’s network namespace, e.g. ns1
+create an OVS internal port e.g. with name tap_1
+move tap_1 from default namespace to container’s namespace ns1
+disable the default network deive in ns1, mostly probably, this is named eth0
+configure IP for tap_1, set it as the default network device of ns1, add default route
+FINISH
+I encapsulated the above procedures into scripts, here is the steps with this scripts:
+
 
