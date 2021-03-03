@@ -479,3 +479,4 @@ FINISH
 I encapsulated the above procedures into scripts, here is the steps with this scripts:
 
 
+https://www.44bits.io/ko/post/container-network-2-ip-command-and-network-namespace 
