@@ -500,3 +500,4 @@ hugepage 잡아먹고있으면 /dev/hugepages의 항목을 다 날려버려
 rtemap이라고 써있는게 잔뜩있어.
 
 
+<https://stackoverflow.com/questions/57550830/how-to-release-the-hugepages-allocated-by-dpdk-application>
