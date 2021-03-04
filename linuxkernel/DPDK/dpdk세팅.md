@@ -491,4 +491,12 @@ https://www.44bits.io/ko/post/container-network-2-ip-command-and-network-namespa
 
 그래서 sudo vi ovs-vsctl 해서 이걸 바꿔주었다. 경로를못찾는거같아서
 
+/usr/local/share/openvswitch/scripts/ vi ovs-kmod-ctl
+에서 lib을 못찾는 이유는 $dir0/lib -> $dir0/ovs-lib/ 
+
+
+
+hugepage 잡아먹고있으면 /dev/hugepages의 항목을 다 날려버려
+rtemap이라고 써있는게 잔뜩있어.
+
 
