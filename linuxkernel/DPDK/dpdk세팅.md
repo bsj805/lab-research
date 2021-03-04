@@ -313,6 +313,8 @@ sudo /usr/share/openvswitch/scripts/ovs-ctl start ->여기에 ovs-ctl
 /usr/local/share/openvswitch/scripts/ovs-ctl start 로 해바. -> 이게 내 $DB_SOCK 에서 db.sock이 가리킬부분.
 
 
+sudo 할때 PATH에 등록된게 실행이안되는경우:
+https://brownbears.tistory.com/252
 
 어 그러니까 된다.
 
@@ -480,3 +482,13 @@ I encapsulated the above procedures into scripts, here is the steps with this sc
 
 
 https://www.44bits.io/ko/post/container-network-2-ip-command-and-network-namespace 
+
+
+##### faucet
+<https://docs.faucet.nz/en/latest/vendors/ovs/README_OVS-DPDK.html>
+이거 하려다가 번번히 실패한다.
+![image](https://user-images.githubusercontent.com/47310668/109924134-2ab7e200-7d03-11eb-9ae1-3729558b4b1b.png)
+
+그래서 sudo vi ovs-vsctl 해서 이걸 바꿔주었다. 경로를못찾는거같아서
+
+
