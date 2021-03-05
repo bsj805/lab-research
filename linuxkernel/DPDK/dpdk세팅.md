@@ -501,3 +501,5 @@ rtemap이라고 써있는게 잔뜩있어.
 
 
 <https://stackoverflow.com/questions/57550830/how-to-release-the-hugepages-allocated-by-dpdk-application>
+
+이게 내 문제가 지금 huge page memory allocation.이 안되어서 ovsdb가 제대로 시작을 
