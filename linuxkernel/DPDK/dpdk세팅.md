@@ -494,6 +494,10 @@ https://www.44bits.io/ko/post/container-network-2-ip-command-and-network-namespa
 /usr/local/share/openvswitch/scripts/ vi ovs-kmod-ctl
 에서 lib을 못찾는 이유는 $dir0/lib -> $dir0/ovs-lib/ 
 
+경로 못찾는다고해서 db.sock에도 심볼릭 링크를 걸었다
+sudo ln -s /usr/local/var/run/openvswitch/db.sock /var/run/openvswitch/db.sock
+
+
 
 
 hugepage 잡아먹고있으면 /dev/hugepages의 항목을 다 날려버려
