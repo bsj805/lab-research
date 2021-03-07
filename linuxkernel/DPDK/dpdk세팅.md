@@ -507,3 +507,43 @@ rtemap이라고 써있는게 잔뜩있어.
 <https://stackoverflow.com/questions/57550830/how-to-release-the-hugepages-allocated-by-dpdk-application>
 
 이게 내 문제가 지금 huge page memory allocation.이 안되어서 ovsdb가 제대로 시작을 
+
+
+###DPDK troubleshoot
+
+```bash
+/var/log/openvswitch
+```
+에서 ovsdb-server 의 log를 보면 커넥션이 로스트되었다 나온다
+![image](https://user-images.githubusercontent.com/47310668/110238831-197f0780-7f87-11eb-8077-aabb23c19260.png)
+위는 ovsvswitchd log 
+![image](https://user-images.githubusercontent.com/47310668/110238866-39aec680-7f87-11eb-8da5-b72371b5a3f6.png)
+아래는 ovsdb-server.log 
+
+그래서 인터넷을 보니
+ovs-vsctl show를 보여주는것은
+ovsdb의 configuration을 보여주는 것이고, 
+```
+"ovs-vsctl show" can display only the DB config entries - so that show works is no guarantee that it is actually running. In case it is not running the described behavior occurs.
+```
+<https://bugs.launchpad.net/ubuntu/+source/openvswitch/+bug/1601820>
+
+그랬더니 
+```
+Look in the error longs in /var/log, particularly /var/log/apport.log. In my case it turned out to be a memory allocation problem with huge pages. Once that was fixed I was able to proceed.
+```
+라는 말이 나오는걸로 봐서는 huge page에 memory를 allocation 하기가 힘들어서? 그럴 수 있는 것 같다.
+```
+apport is a tool which gathers system information for use when submitting a bug report to Ubuntu Launchpad. Since your program does not belong to a package distributed by Ubuntu there is no point in submitting a bug report to Ubuntu Launchpad, therefore apport cannot help.
+```
+즉, 이걸 실행하는데 실패했으니 여기서 알아봐라 
+근데 apport는 package들의 log만담아주니까 이 파일에 대해서는 알려줄 수 가없다. 알아서해봐라.
+
+/usr/local/sbin/ovs-vswitchd
+(command line "ovs-vswitchd unix:/usr/local/var/run/openvswitch/db.sock -vconsole:emer -vsys
+log:err -vfile:info --mlockall --no-chdir --log-file=/usr/local/var/log/openvswitch/ovs-vswitchd.log --pidfile=/usr/local/var/run/openvswitch/ovs-vswitchd.pid --detach --monitor
+
+실행을 못시켰어.
+그래서 ovs db가 열리지 않았고, 우리는 연결을 할 수 가 없었어.
+
+
