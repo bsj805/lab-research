@@ -546,4 +546,7 @@ log:err -vfile:info --mlockall --no-chdir --log-file=/usr/local/var/log/openvswi
 실행을 못시켰어.
 그래서 ovs db가 열리지 않았고, 우리는 연결을 할 수 가 없었어.
 
+![image](https://user-images.githubusercontent.com/47310668/110242412-5522cd00-7f99-11eb-91a0-673372a1ae35.png)
+ovs-vsctl add-br br0 할때 왜 안되냐면 소켓이안연결되어서? DB-SERVER가 RUNNING하고있지않아서?
+
 
