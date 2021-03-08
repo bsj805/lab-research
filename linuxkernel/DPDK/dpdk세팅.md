@@ -547,6 +547,16 @@ log:err -vfile:info --mlockall --no-chdir --log-file=/usr/local/var/log/openvswi
 그래서 ovs db가 열리지 않았고, 우리는 연결을 할 수 가 없었어.
 
 ![image](https://user-images.githubusercontent.com/47310668/110242412-5522cd00-7f99-11eb-91a0-673372a1ae35.png)
+
+![image](https://user-images.githubusercontent.com/47310668/110274232-b090a180-8011-11eb-9e46-2b2c717aca10.png)
+
+
 ovs-vsctl add-br br0 할때 왜 안되냐면 소켓이안연결되어서? DB-SERVER가 RUNNING하고있지않아서?
 
+일단 구버전으로 설치해보자. ./configure파일에서 ovs_cv_python 을 설정해주었어. python3 랑
+
+
+아냐
+
+<https://docs.openvswitch.org/en/latest/howto/dpdk/>
 
