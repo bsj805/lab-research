@@ -560,3 +560,17 @@ ovs-vsctl add-br br0 할때 왜 안되냐면 소켓이안연결되어서? DB-SER
 
 <https://docs.openvswitch.org/en/latest/howto/dpdk/>
 
+
+![image](https://user-images.githubusercontent.com/47310668/110288067-cbbbdb00-802a-11eb-99b4-c3812ef66bea.png)
+이런 configuration 해주고 일단 성공?  ovs-ctl start 미리 해놨음
+
+![image](https://user-images.githubusercontent.com/47310668/110296420-ab454e00-8035-11eb-8139-e762bbadc4b9.png)
+이것처럼떠야 정상이네
+
+/usr/local/var/log/openvswitch 에 있다. ovs-vswitchd.log
+![image](https://user-images.githubusercontent.com/47310668/110297165-84d3e280-8036-11eb-84f2-0dc5be7970f5.png)
+
+top -H 하면 이렇게 뜨고 
+![image](https://user-images.githubusercontent.com/47310668/110297406-cb294180-8036-11eb-9c1a-784fdee4a468.png)
+
+1 , 2 , 3 누르면 뜬다 각각.
