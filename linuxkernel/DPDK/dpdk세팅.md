@@ -513,6 +513,7 @@ rtemap이라고 써있는게 잔뜩있어.
 
 ```bash
 /var/log/openvswitch
+/usr/local/var/log
 ```
 에서 ovsdb-server 의 log를 보면 커넥션이 로스트되었다 나온다
 ![image](https://user-images.githubusercontent.com/47310668/110238831-197f0780-7f87-11eb-8077-aabb23c19260.png)
@@ -578,3 +579,14 @@ top -H 하면 이렇게 뜨고
 
 <https://www.openvswitch.org/support/dist-docs-2.5/ovs-ofctl.8.txt>
 dl_dst 랑 dl_src 
+
+내 경우에 RTE_SDK 는 /usr/src/dpdk-20.11
+내 경우에 RTE_TARGET 뭐 x86_64-native-linuxapp-gcc는 /usr/src/dpdk-20.11/build와 동일. 이 전체가 DPDK_BULD
+/mnt/huge는 /dev/hugepages와 동일
+나는 /mnt/huge가 1GB hugepage고
+/dev/hugepages는 2M hugepage
+mount | grep -i huge
+로 알 수 있다.
+<https://www.youtube.com/watch?v=hEmvd7ZjkFw>
+dl_type=0x800 flow는 ipv4 패킷들을 잡아내라.
+ovs-ofctl show 를 하면, port mapping을 볼 수 있다.
