@@ -590,3 +590,18 @@ mount | grep -i huge
 <https://www.youtube.com/watch?v=hEmvd7ZjkFw>
 dl_type=0x800 flow는 ipv4 패킷들을 잡아내라.
 ovs-ofctl show 를 하면, port mapping을 볼 수 있다.
+
+
+![image](https://user-images.githubusercontent.com/47310668/111053931-7c066500-84ab-11eb-8470-0316f5867870.png)
+
+이런식으로  dpdk-hugepage-dir 옵션을 줘서 어떤 hugepage를 쓰라고 할 수 있다.
+192.168.0.6/24 를 moby1로,
+192.168.0.7/24 를 moby2로 해야겠다.
+
+![image](https://user-images.githubusercontent.com/47310668/111054495-6e9fa980-84b0-11eb-9b22-b090bf7af688.png)
+http://cwyang.github.io/2018/10/12/ovs-docker-centos7-environment.html
+moby 1이 61aa5d
+moby 2가 9727874
+
+
+<https://github.com/jiexray/docker-ovs-dpdk-vhost-demo> 이 링크에서 swipe openvswitch할 수 있다.
