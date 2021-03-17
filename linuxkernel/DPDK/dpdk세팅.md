@@ -625,3 +625,11 @@ https://recordnb.tistory.com/9?category=633474 환경변수는 여기처럼 지�
 PKG_CONFIG_PATH
 LD_LIBRARY_PATH : 설정 하고 pktgen이 그래도 안되면 dpdk를 재설치.
 
+'''bash
+sudo -E ./usr/local/bin/pktgen -l 2,3-4,5-6 -n 2 --proc-type auto --log-level 7 --file-prefix pg -w 03:00.1 -w 03:00.0 -- -v -T -P -j -m[3:4].0 -m [5:6].1 -f themes/black-yellow.theme
+ 이게 블랙에서의 옵션
+ 
+ sudo ./usr/local/bin/                                                            
+pktgen -l 0-9 -n 2 -- -T -P -m "[1-3:4-5].0, [6-7:8-9].1" -f./rain.pkt
+
+white에서의 옵션
