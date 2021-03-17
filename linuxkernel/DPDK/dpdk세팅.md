@@ -618,3 +618,10 @@ panic no port 의 경우, devbind를 했는데도 발생하는경우 pktgen과 d
 
 https://git.dpdk.org/apps/pktgen-dpdk/snapshot/pktgen-20.10.0.tar.gz
 https://recordnb.tistory.com/9?category=633474 환경변수는 여기처럼 지정,
+<http://code.dpdk.org/pktgen-dpdk/latest/source/changelog.txt>
+
+각 버전별로 어떤것이 바뀌었는지
+
+PKG_CONFIG_PATH
+LD_LIBRARY_PATH : 설정 하고 pktgen이 그래도 안되면 dpdk를 재설치.
+
