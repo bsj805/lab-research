@@ -606,4 +606,11 @@ moby 2가 9727874
 
 <https://github.com/jiexray/docker-ovs-dpdk-vhost-demo> 이 링크에서 swipe openvswitch할 수 있다.
 
-https://doc.dpdk.org/dts/gsg/support_igb_uio.html igb_uio는 별도의 저장소에보관된다.
+https://doc.dpdk.org/dts/gsg/support_igb_uio.html igb_uio는 별도의 저장소에보관된다. 20.11버전부터 그렇다.(DPDK버전)
+
+https://github.com/pktgen/Pktgen-DPDK/archive/pktgen-20.11.0.tar.gz
+이처럼 특정 git에들어가서 tags 나 releases를 찾아보면 특정버전을 다운받을 수 있고,
+https://jlog1016.tistory.com/60
+나 checkout으로 우선다운받고 버전을 되돌려버리는 식으로 할 수 도 있다.
+
+panic no port 의 경우, devbind를 했는데도 발생하는경우 pktgen과 dpdk의 버전이 다른경우이다.
