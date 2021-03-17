@@ -614,3 +614,7 @@ https://jlog1016.tistory.com/60
 나 checkout으로 우선다운받고 버전을 되돌려버리는 식으로 할 수 도 있다.
 
 panic no port 의 경우, devbind를 했는데도 발생하는경우 pktgen과 dpdk의 버전이 다른경우이다.
+
+
+https://git.dpdk.org/apps/pktgen-dpdk/snapshot/pktgen-20.10.0.tar.gz
+https://recordnb.tistory.com/9?category=633474 환경변수는 여기처럼 지정,
