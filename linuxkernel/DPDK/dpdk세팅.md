@@ -675,3 +675,6 @@ set portlist src|dst ip ipaddr  src는10.1.2.3/24 dst는그냥ip
 00:00:00:00:00:04
 
 ```
+![image](https://user-images.githubusercontent.com/47310668/111578566-bba8b600-87f7-11eb-9de5-30ff5168cb4d.png)
+igb_uio로 해야한다.
+
