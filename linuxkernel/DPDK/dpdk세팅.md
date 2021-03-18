@@ -633,3 +633,45 @@ sudo -E ./usr/local/bin/pktgen -l 2,3-4,5-6 -n 2 --proc-type auto --log-level 7 
 pktgen -l 0-9 -n 2 -- -T -P -m "[1-3:4-5].0, [6-7:8-9].1" -f./rain.pkt
 
 white에서의 옵션
+
+서로 ip를 세팅해주니 mac을 세팅안해줘도 패킷을 주고받는다
+100080 mbits/sec가 나온다.
+```
+black: 10.0.0.6/24
+00:00:00:00:00:04
+03:00.0
+
+10.0.0.7/24
+00:00:00:00:00:05
+03:00.1
+
+white 10.0.0.9/24
+00:00:00:00:00:06
+04:00.0
+
+10.0.0.8/24
+00:00:00:00:00:07
+04:00.1
+PKTGEN 사용 방법
+set [포트번호] [설정] [값]
+
+set 0 count 100 // 0번 포트로 100개 생성
+
+set 0 size 64 // 0번 포트 패킷 사이즈 64
+
+set 0 rate 50 // 0번 포트 50%속도로 전송
+
+set 0 src ip 1.1.1.1/24 // ip 설정
+
+set 0 src mac 00:00:00:00:00:01 // mac 설정
+
+start 0 // 패킷 전송 시작
+http://man-glove.blogspot.com/2016/11/pktgen.html
+
+set portlist src|dst mac < addr>
+set portlist src|dst ip ipaddr  src는10.1.2.3/24 dst는그냥ip
+
+
+00:00:00:00:00:04
+
+```
