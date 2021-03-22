@@ -677,4 +677,12 @@ set portlist src|dst ip ipaddr  src는10.1.2.3/24 dst는그냥ip
 ```
 ![image](https://user-images.githubusercontent.com/47310668/111578566-bba8b600-87f7-11eb-9de5-30ff5168cb4d.png)
 igb_uio로 해야한다.
+<https://stackoverflow.com/questions/43246174/how-to-send-and-receive-data-using-dpdk>
 
+와 같이 testpmd는 recv only, transmit only, forwarding only로 작동한다. 그말인즉슨, receive mode를 활성화시켜야
+dpdk에서오는 패킷을 해당 mac주소로 받을 수 있다는 것이다.
+testpmd EAL 커맨드는 -- 앞에 온다.
+<https://software.intel.com/content/www/us/en/develop/articles/testing-dpdk-performance-and-features-with-testpmd.html?language=ru>
+이게 어떻게 testpmd사용하는지?
+https://docs.docker.com/engine/reference/commandline/cp/
+sudo docker cp ./pktgen.tar.gz 3dd538e079a5:/usr/src 와 같이 scp가능
