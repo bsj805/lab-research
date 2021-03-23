@@ -669,6 +669,10 @@ start 0 // 패킷 전송 시작
 http://man-glove.blogspot.com/2016/11/pktgen.html
 
 set portlist src|dst mac < addr>
+
+![image](https://user-images.githubusercontent.com/47310668/112146617-248c9580-8c1f-11eb-994c-b4ebd26a1674.png)
+
+이와같이 black쪽 컨테이너에서 dpdk를 통해서 패킷을 전송받는 것이 가능하다.
 set portlist src|dst ip ipaddr  src는10.1.2.3/24 dst는그냥ip
 
 
