@@ -1,0 +1,130 @@
+RUN docker run -it --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE"
+docker run -it --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev -v /mnt/huge:/mnt/huge --name contdpdk ubuntunet
+
+apt install meson -y && apt install python3-pyelftools -y && apt install libnuma-dev -y && apt install build essential -y && apt install vim -y
+apt install git pciutils iproute2 wget libelf-dev -y 
+apt install linux-headers-5.8.0-44-generic -y
+apt-get upgrade libelf-dev -y
+apt-get install kmod libssl-dev zfsutils-linux sudo binutils-dev -y
+apt-get install zlib1g-dev flex byacc libpcre2-8-0 libjemalloc-dev libtool libtool-bin -y
+
+
+시작되면
+apt-get install libelf-dev libnuma-dev pkg-config cmake libbsd-dev libpcap-dev  libkmod-dev -y
+
+mkdir /mnt/huge
+mount -t hugetlbfs pagesize=1GB /mnt/huge
+wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.11.tar.gz
+tar -xvzf v20.11.tar.gz
+cp -r dpdk-20.11 /usr/src/
+git clone https://github.com/libbpf/libbpf.git
+cd libbpf/src
+make && make install
+
+#/usr/lib64/libbpf*를 /usr/lib으로 옮겨줘야.
+cp /usr/lib64/libbpf* /usr/lib
+cd /usr/lib
+rm libbpf.so
+rm libbpf.so.0
+ln -s libbpf.so.0.4.0 libbpf.so
+ln -s libbpf.so.0.4.0 libbpf.so.0
+ln -s /usr/src/linux-headers-$(uname -r) ~/build
+cd /usr/src
+git clone git://dpdk.org/dpdk-kmods
+cp -r /usr/src/dpdk-kmods/linux/igb_uio /usr/src/dpdk-20.11/kernel/linux
+vi /usr/src/dpdk-20.11/kernel/linux/meson.build
+vi에서 subdirs = ['kni', 'igb_uio']를 더해주고
+vi /usr/src/dpdk-20.11/kernel/linux/igb_uio/meson.build 에
+:set paste로 해서 이를 붙여넣는다.
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright(c) 2017 Intel Corporation
+
+mkfile = custom_target('igb_uio_makefile',
+        output: 'Makefile',
+        command: ['touch', '@OUTPUT@'])
+
+custom_target('igb_uio',
+        input: ['igb_uio.c', 'Kbuild'],
+        output: 'igb_uio.ko',
+        command: ['make', '-C', kernel_dir + '/build',
+                'M=' + meson.current_build_dir(),
+                'src=' + meson.current_source_dir(),
+                'EXTRA_CFLAGS=-I' + meson.current_source_dir() +
+                        '/../../../lib/librte_eal/include',
+                'modules'],
+        depends: mkfile,
+        install: true,
+        install_dir: kernel_dir + '/extra/dpdk',
+        build_by_default: get_option('enable_kmods'))
+
+cd /usr/src/dpdk-20.11
+
+export DPDK_DIR=/usr/src/dpdk-20.11
+export DPDK_BUILD=$DPDK_DIR/build
+cd /usr/src/dpdk-20.11
+meson -Denable_kmods=true -Dexamples=all build
+ninja -C build
+ninja -C build install
+ldconfig
+
+wget https://github.com/pktgen/Pktgen-DPDK/archive/refs/tags/pktgen-20.11.3.tar.gz
+tar -xvzf pktgen-20.11.3.tar.gz
+
+wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.08.tar.gz
+
+cd Pktgen-DPDK-pktgen-20.11.3/
+export RTE_SDK=/usr/src/dpdk-20.11
+export RTE_TARGET=build
+#https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html 를 참고
+./cfg/default.cfg 수정
+cp /usr/src/dpdk-20.11/build/kernel/linux/igb_uio/igb_uio.ko /usr/src/dpdk-20.11/build/kmod
+./run.py defB
+./tools/run.py
+./dpdk-testpmd -l 0-9 -n 2 -- -i
+
+#white는 Pktgen 20.11.3 (DPDK 20.11.1)
+
+#black은 Pktgen 20.10.0 (DPDK 20.08.0)
+
+
+black: 10.0.0.6/24
+00:00:00:00:00:04
+03:00.0
+
+10.0.0.7/24
+00:00:00:00:00:05
+03:00.1
+
+white 10.0.0.9/24
+00:00:00:00:00:06
+04:00.0
+
+10.0.0.8/24
+00:00:00:00:00:07
+04:00.1
+
+white Pktgen:/> set 1 src ip 10.0.0.8/24
+white Pktgen:/> set 0 src ip 10.0.0.9/24
+
+03:00.1 출발 04:00.0 도착 가능.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
