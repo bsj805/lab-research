@@ -21,3 +21,7 @@ dpdk 버전 낮추고 20.08, 패킷젠 버전 20.10으로 해결
 
 
 pci function 1에다 보내도 1이받고, 0한테 보내도 1이받네.
+
+
+host에서 host로 보낼때 (아래)
+![image](https://user-images.githubusercontent.com/47310668/112434130-89163480-8d86-11eb-9c15-843c07cdc005.png)
