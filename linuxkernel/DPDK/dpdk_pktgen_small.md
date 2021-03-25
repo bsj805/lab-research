@@ -15,3 +15,6 @@ dpdk가 shared mode로 build되어서그런걸지도
 find / -name "librte_*.so" | grep ena
 ```
 
+![image](https://user-images.githubusercontent.com/47310668/112431601-1192d600-8d83-11eb-9791-963fe4ca3c3e.png)
+
+dpdk 버전 낮추고 20.08, 패킷젠 버전 20.10으로 해결
