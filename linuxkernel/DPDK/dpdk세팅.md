@@ -698,3 +698,6 @@ sudo docker cp ./pktgen.tar.gz 3dd538e079a5:/usr/src 와 같이 scp가능
 dpdk 20.11.1 , pktgen 20.11.3 버전사용시 오류가 난다 ( 정상실행되지만 보낼수가없다 패킷을)
 /usr/bin/env: ‘python’: No such file or directory
 이건 ln -s /usr/bin/python3 /usr/bin/python 즉 파이썬 실행시킬 때 파이썬 3 로 
+
+
+hugepage setting은 /etc/fstab
