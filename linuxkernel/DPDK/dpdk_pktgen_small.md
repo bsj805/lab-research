@@ -25,3 +25,7 @@ pci function 1에다 보내도 1이받고, 0한테 보내도 1이받네.
 
 host에서 host로 보낼때 (아래)
 ![image](https://user-images.githubusercontent.com/47310668/112434130-89163480-8d86-11eb-9c15-843c07cdc005.png)
+
+
+![image](https://user-images.githubusercontent.com/47310668/112717402-ca961380-8f2f-11eb-8849-6582271105af.png)
+host에선 dpdk 20.11 설치하고 (black) 컨테이너에서 20.08로 설치해서 dpdk pktgen사용가능.
