@@ -29,3 +29,12 @@ host에서 host로 보낼때 (아래)
 
 ![image](https://user-images.githubusercontent.com/47310668/112717402-ca961380-8f2f-11eb-8849-6582271105af.png)
 host에선 dpdk 20.11 설치하고 (black) 컨테이너에서 20.08로 설치해서 dpdk pktgen사용가능.
+
+
+ovs-ctl start
+sudo ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true
+sudo ovs-ctl --no-ovsdb-server --db-sock="$DB_SOCK" start
+sudo ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-lcore-mask=0x40
+
+0x04면 2번core에 thread생성
+<https://developers.redhat.com/blog/2017/06/28/ovs-dpdk-parameters-dealing-with-multi-numa/>
