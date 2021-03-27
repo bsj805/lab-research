@@ -40,3 +40,6 @@ sudo ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-hugepage-dir="/mnt
 vi /etc/fstab에 쓰여진대로 해보았어
 0x04면 2번core에 thread생성
 <https://developers.redhat.com/blog/2017/06/28/ovs-dpdk-parameters-dealing-with-multi-numa/>
+
+log는
+/usr/local/var/log
