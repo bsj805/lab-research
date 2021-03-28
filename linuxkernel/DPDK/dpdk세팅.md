@@ -736,3 +736,4 @@ mac주소는 dpdk0랑 같은데,
 ![image](https://user-images.githubusercontent.com/47310668/112754147-d0febb00-9015-11eb-9992-1af46b132303.png)
 
 vhost user쪽에서 잘 받아진다.
+testpmd쪽설정은 txt파일처럼 set fwd io설정해주는거 잊지않기.
