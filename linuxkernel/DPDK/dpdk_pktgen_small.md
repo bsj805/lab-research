@@ -43,3 +43,8 @@ vi /etc/fstab에 쓰여진대로 해보았어
 
 log는
 /usr/local/var/log
+
+https://doc.dpdk.org/guides/howto/virtio_user_for_container_networking.html
+
+![image](https://user-images.githubusercontent.com/47310668/112739718-89dede80-8fb1-11eb-9955-e329e1f08640.png)
+와같이 구성해볼것.
