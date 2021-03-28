@@ -718,4 +718,21 @@ ovs-dpdk < https://www.slideshare.net/MichelleHolley1/dpdk-in-containers-handson
 현재는 이상태.
 
 
+![image](https://user-images.githubusercontent.com/47310668/112753965-e2939300-9014-11eb-8bb3-98247cfe5d78.png)
+마침내성공.
+일단 dpdk1로 보낸 다음 ( 그전에 br0를 configure) route -n에서 10.0.0.0  255.255.255.0 은 모두 br0를 타도록해야.
+$ ip addr add 10.0.0.17/24 dev br0
+$ ip link set br0 up
+이걸 마치면 
+![image](https://user-images.githubusercontent.com/47310668/112754008-25556b00-9015-11eb-98b4-e93bbfa1e7eb.png)
 
+와 같이 뜬다.
+
+ovs-ofctl 로 보면, 
+![image](https://user-images.githubusercontent.com/47310668/112754017-330af080-9015-11eb-923e-9c0f3ab1e63c.png)
+mac주소는 dpdk0랑 같은데, 
+사실 link up되어있는건 dpdk1
+이제 dpdk1이랑연관된 flow를 심어주면 
+![image](https://user-images.githubusercontent.com/47310668/112754147-d0febb00-9015-11eb-9992-1af46b132303.png)
+
+vhost user쪽에서 잘 받아진다.
