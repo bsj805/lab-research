@@ -701,3 +701,13 @@ dpdk 20.11.1 , pktgen 20.11.3 버전사용시 오류가 난다 ( 정상실행되
 
 
 hugepage setting은 /etc/fstab
+
+
+
+
+![image](https://user-images.githubusercontent.com/47310668/112752278-24b8d680-900d-11eb-90ac-84cd437e54d1.png)
+
+ovs-dpdk < https://www.slideshare.net/MichelleHolley1/dpdk-in-containers-handson-lab>
+이거랑 똑같아
+
+
