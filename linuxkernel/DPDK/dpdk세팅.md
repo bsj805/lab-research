@@ -708,6 +708,14 @@ hugepage setting은 /etc/fstab
 ![image](https://user-images.githubusercontent.com/47310668/112752278-24b8d680-900d-11eb-90ac-84cd437e54d1.png)
 
 ovs-dpdk < https://www.slideshare.net/MichelleHolley1/dpdk-in-containers-handson-lab>
-이거랑 똑같아
+이거랑 똑같아.
+자그럼 만약에, dpdk 가 되어있는 NIC한테 들어온 것을 죄다 pktgen포트로 넣어버리면어떨까?
+
+![image](https://user-images.githubusercontent.com/47310668/112752303-5f227380-900d-11eb-8f93-e4b716aec863.png)
+그걸 진행해보자.
+![image](https://user-images.githubusercontent.com/47310668/112752317-76f9f780-900d-11eb-9dc8-2ce623400f28.png)
+
+현재는 이상태.
+
 
 
