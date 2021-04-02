@@ -1,0 +1,93 @@
+NetVM: High Performance and Flexible Networking
+Using Virtualization on Commodity Platforms
+
+Predictive Container Auto-Scaling for Cloud-
+Native Applications (HPA for k8s)
+
+Horizontal Pod Autoscaling in Kubernetes
+
+Horizontal Pod Autoscaling in Kubernetes for Elastic
+Container Orchestration
+
+Slim: OS Kernel Support for a Low-Overhead
+Container Overlay Network
+
+Linux Network Fundamentals and Applications
+
+Iron: Isolating Network-based CPU
+in Container Environments
+
+Memory virtualization in virtualized systems:
+segmentation is better than paging
+
+Accelerated DPDK in containers for
+networking nodes (SRIOV랑 DPDK쓰는거)
+
+Optimization of Packet Throughput
+in Docker Containers
+
+Multi-Tenant Machine Learning Platform Based on
+Kubernetes
+
+kubernetes resource scheduling scheme
+
+Empty-Promise-Zero-Copy-Receive-for-vhost-Mike-Rapoport-IBM
+
+gaia scheduler kubernetes based gpu cluster scheduling
+
+ConVGPU GPU Management Middleware in Container based virtual environment
+(GPU쪼개서 컨테이너각각에 쓰는거)
+
+FlexGPU A Flexible and Efficient Scheduler for GPU Sharing Systems
+
+GaiaGPU Sharing GPUs in Container Clouds (k8s로 share system)
+
+Resource containers: A new facility for resource management
+in server systems (고전논문)
+
+FERO Fast and Efficient Resource Orchestrator for a Data Plane Built on Docker and DPDK
+
+A Performance Comparison of Container Networking Alternatives
+
+mtcp a highly scalable user level tcp stack for multicore system
+
+Performance of OVS-DPDK in Container Networks
+
+mtcp a highly scalable user level tcp stack for multicore system
+
+Lazy receiver processing (고전논문0 - iron - resource contaienr- lrp)
+
+Performance of OVS-DPDK in Container Networks
+
+OVS-DPDK with TSO feature running
+
+Xen and the Art of Virtualization
+
+lxc-namespace and cgroup
+
+Understanding The Performance of DPDK as a Computer Architect
+
+
+Experience with DPDK Troubleshooting (redhat 쪽에서 dpdk tutorial)
+
+OpenFlow-based virtual TAP using open vSwitch and DPDK
+
+Accelerated DPDK in containers for networking nodes
+
+A survey of trends in fast packet processing
+
+NetBricks Taking the V out of NFV (dpdk is useless)
+
+Characterizing the Performance of Concurrent Virtualized
+
+Enhancing VNF's performance using DPDK driven
+
+Throughput and Latency of Virtual Switching with Openvswitch
+
+
+
+
+
+
+
+
