@@ -1,0 +1,61 @@
+iron과는 달리 요즘 최신 트렌드인 SDN을 적용한 상태에서의 
+네트워크 처리의 커널 오버헤드를 각 컨테이너별로 정확히
+charge해보자. 
+하지만 기존에는 interrupt기반이니까 상대방의 running
+time 때에 core가 뺏기니까 문제였다. 그래서 iron이 의미가
+있어진다.
+
+
+
+하지만 OVS-dpdk를 사용하면 polling 기반으로, 지속적으로
+cpu를 차지하고 있는 애가 있기 때문에 다른 컨테이너들은
+자신의 running time때에 패킷 처리를 위한 인터럽트가 발생하지
+않는다. 즉 문제가 없다. 
+
+그래서 생각해봐야 할 것은 hugepage에 packet의 메모리가
+꽉 찼을 때, 어떻게 되는지?
+
+아니면,
+high speed networking에서의 network consumption monitoring ?
+
+cpu의 사용량을 
+
+같은 노드에서 DPDK 컨테이너 2개 이상 띄웠을 때, 
+poll mode로 돌아가는 core의 사용량이 해당 컨테이너의
+사용량에 포함이 되는건지 안되는건지.
+
+컨테이너 환경에서 OVS-DPDK를 썼을 때
+네트워크 커널에서 패킷 처리 오버헤드를
+파악하는 연구? 
+
+컨테이너 환경에서 OVS-DPDK를 활용시의 
+
+
+DPDK를 컨테이너환경에서 사용할때 
+container의 자원관리에 끼치는 영향에 대해 분석하는 연구.
+
+3월19일까지
+
+ovs-dpdk 사용환경에서 dpdk를 사용하지 않는 컨테이너
+
+정찬규 선배: SRIOV 
+NIC하나를 두개의 인터페이스로
+2017 Press ReleasesAkamai Online Retail Performance Report: Milliseconds Are Critica
+다른 가상의 닉을 하나만들어서 해당 NIC에만 DPDK를 이용해서
+하나의 컨테이너는dpdk 쓰고 하난안쓰고
+그들사이에 권리침해가 있을 수 있는가?
+Slim: OS Kernel Support for a Low-Overhead Container Overlay Network
+SR-IOV를 통해서 DPDK안쓰는 컨테이너를 생성해보는 것.
+
+
+scheduler를 써서 접근하는게 괜찮아보인다.
+
+정찬규 선배님께 질문:
+1. SR-IOV를 bios에서 enable시켰는데, linux NIC 디렉토리 안에서
+SR-IOV로 Virtual function을 몇개 만들지 정하는 파일이 나타나지 않는다.
+이에 대해서 찾아보니 NIC 각각에 대한 bios 설정을 해주어야 SR-IOV 사용이
+가능하다고 하는데 이에 대해서 어떻게 해볼 수 있는지.
+2. 그렇게 만들어진 VF각각을 컨테이너에 붙일 수가 있게 되는것인지
+3. 그렇게 만들어진 VF와 PF 사이 패킷 전송이 TCPDUMP 등으로 보여지는지
+(mac이 다르지 않은지? ovs쪽에서 읽어보니 VF와 PF사이 패킷 교환이 자유롭다고)
+4. 

@@ -1,0 +1,48 @@
+DPDK는 성능을 위해서 폴링
+
+scheduler를 고치는 방식?
+왜 저거 안하고 cgroup으로 했느냐
+
+'candidate를 주고 비교하는 방식으로 나아가야한다.
+
+iron에서 
+
+OVS-DPDK 
+dpdk는 polling
+polling 해온게 mempool에 들어오는데, 
+cpu점유율이 굉장이 높아. 한 코어는 cpu 100%를 쓰게되는데,
+
+scenario상 scheduler가 안되는 측면이 있는가
+
+이런상황에서는 쓰지 못한다.
+
+NIC가 하나라면 모든 컨테이너가 DPDK를 쓰는 애들인데, 
+코어가 하나면 33%씩을 먹는다. 
+
+cpu 4개고
+컨테이너3개면
+1.33씩 쓰겠다 하는 상황인데, 
+
+DPDK에 코어를 하나 할당했을 때, 
+컨테이너각각이 코어를 최대로 쓰려고 하면, 
+OVS를 하나의 컨테이너로 잡고,
+
+컨테이너각각이 얼마만큼의 CPU점유율을 차지하는지,
+
+DPDK에서 malloc이 어떻게되는지. 
+
+OVS-DPDK에 패킷을 올라왔을 때 각 container에 
+memcopy가 발생하는지가 궁금하네
+payload를 어떻게 전달하는지
+payload를 전달할 때 zerocopy가 아니라 
+
+DPDK가 그 메모리에 직접 접근할 포인터를 줘서 그 데이터를 사용하는것이다.
+
+
+
+1. 시나리오를 생각해보고
+2. scheduler보다 좋은점
+3. DPDK-container 실험
+4. 
+
+
