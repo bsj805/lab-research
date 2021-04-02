@@ -1,0 +1,57 @@
+testpmd 옵션
+--tx-ip=SRC,DST ip줄 수 있다 (-- 뒤에_ 
+https://doc.dpdk.org/guides/testpmd_app_ug/testpmd_funcs.html
+https://doc.dpdk.org/guides/testpmd_app_ug/run_app.html
+--tx-udp=SRC[,DST] 포트번호를정할수있다.
+ sudo ./dpdk-testpmd -l 0-2 -n 2 -- -i --portmask=0x1 --burst=64 --tx-ip=10.0.0.7,10.0.0.8
+1번포트 쓰겠다 (portmask)
+
+그럼 이상태에서 10.0.0.7이 src ip로 정해져서 패킷이 뭔가들어오는데
+다 드랍시켜버린다. 
+
+dpdk를 private cloud에서 특정 워크로드가 지속적으로 발생한다 식에서나 쓴다.
+
+test pmd를 쓰려는건, container에 새로운 nic만들어서 그거를 dpdk에 바인딩하고, 
+거기에 대해서 testpmd를 쓰려는거야. 그러니까 우리는 dpdk에 바인딩을 할 새 interface를만들기만해주면 된다.
+그래서 forwarding받는지 확인만하면되겠다.
+
+testpmd 에서
+show port xstats 1(port번호) 쓰면 
+
+https://github.com/lagopus/lagopus/blob/master/docs/how-to-use-virtio-user.md
+이걸로 보내고 확인해보면 32개를 주고받는것을 볼 수 있다.
+/dpdk-testpmd -l 0-1 -n 4 --socket-mem 1024 --vdev 'eth_vhost0,iface=/tmp/sock0' --file-prefix=host --no-pci -- -i  
+이걸 hsot에서 실행시키면 /tmp/sock0가 생긴다. 이게 vhostuser용인데,
+이걸 도커 컨테이너에서 
+sudo docker run -it -v /tmp/sock0:/var/run/usvhost -v /de
+v/hugepages:/dev/hugepages -v /dev:/dev --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/h
+ugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node --name vhocont ubuntunetplus
+로 실행시키고,
+./dpdk-testpmd -l 6-7 -n 4 -m 1024 --no-pci --vdev=virtio_user0,path=/var/run/usvhost --file-prefix=container -- -i  
+로 실행시키면, (path가 저 소켓이 마운트된곳)  서로 패킷을 전송할수있는것.
+
+start tx_first
+set fwd rxonly
+set fwd txonly
+set txpkts 64
+
+# Configure testpmd to send 32(default) pkts of lenght 70
+#
+testpmd> set fwd rxonly
+testpmd> set txpkts 70
+testpmd> start tx_first
+
+promiscuous mode가 disable된다.
+ovs-vsctl add-br br0 -- set bridge br0 datapath_type=netdev
+ovs-vsctl add-port br0 vhost-user0 -- set Interface vhost-user0 type=dpdkvhostuser
+ovs-ofctl show br0
+ovs-ofctl dump-flows br0
+./dpdk-testpmd $DPDK_PARAMS -- -i 로 실행시켰다.
+
+set fwd io
+
+to set ethernet destination of port ,
+set eth-peer 0 38:ea:6a:06:1b:1a 와 같이 하면된다.(https://www.youtube.com/watch?v=Un5-AN4nb9s)
+
+sudo ovs-ofctl add-flow br0 in_port=2,dl_type=0x800,idle_timeout=0,action=output:3
+ovs-ofctl del-flows br0 in_port=dpdk0,dl_type=0x800,out_port=7
