@@ -737,3 +737,7 @@ mac주소는 dpdk0랑 같은데,
 
 vhost user쪽에서 잘 받아진다.
 testpmd쪽설정은 txt파일처럼 set fwd io설정해주는거 잊지않기.
+
+
+https://www.redhat.com/en/blog/troubleshooting-packet-drop-nfv-dpdk
+여기서 ovs-dpdk를 tuning하는방법을 
