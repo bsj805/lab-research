@@ -51,3 +51,42 @@ sudo operf ./tools/run.py defb로 해봐도
 
 이런결과정도만 나온다.
 
+https://cslab.cbnu.ac.kr/board/bbs/board.php?bo_table=libfaq&wr_id=29&page=15
+
+opreport -l 로 해봐
+
+![image](https://user-images.githubusercontent.com/47310668/115147873-0be59300-a098-11eb-8b99-885b56e5635b.png)
+
+이런식으로 어떤함수가 썼는지가 나온다.
+
+
+지금 pktgen에서 display processing이 lcore 2
+rx processing은 3번
+tx porcessing은 4번
+
+white@ Pktgen디렉토리의 pktgen_operf_10sec.txt
+ovs-dpdk성능테스트 <https://o365skku-my.sharepoint.com/:x:/g/personal/bsj805_o365_skku_edu/ES2rIdjVQm1OmLuwzIMVEZgBM9eoK84I3SVY3LoEE8d2tA?e=aY1jj9>
+에서도 확인할 수 있다.
+tx는 pcap_filter에 다 썼고
+rx는 ixgbe_recv_pkts_lro
+ixgbe_xmit_pkts 에 다썼다.
+
+
+
+
+부족하면 http://www.brendangregg.com/blog/2014-06-22/perf-cpu-sample.html를 시도해봐도될듯
+
+pktgen_operf_tx_10sec.txt은 10초동안 192.168.1.1로 보낸거
+9.5gb/s로 보낸다
+
+보내기를 하니까 tx코어쪽에 11%의 ixgbe_crypto_add_sa가 생겼다
+10%의 ixgbe_pf_host_configure가 생겼고
+51%의 pcap_filter
+9%의 set_page_size
+정도?
+
+
+
+
+
+
