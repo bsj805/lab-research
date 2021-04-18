@@ -46,4 +46,8 @@ opreport -x
 패킷젠쪽에서 찍어봐도 operf로는 불가능한거같다
 
 
+sudo operf ./tools/run.py defb로 해봐도 
+![image](https://user-images.githubusercontent.com/47310668/115147773-9b3e7680-a097-11eb-9391-4a72ec20c9aa.png)
+
+이런결과정도만 나온다.
 
