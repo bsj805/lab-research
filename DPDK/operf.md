@@ -88,5 +88,26 @@ pktgen_operf_tx_10sec.txt은 10초동안 192.168.1.1로 보낸거
 
 
 
+45.2478	0	0	0	0	0	0	0	0	0	0	0	0	librte_pmd_ixgbe.so.20.0.3	pktgen	ixgbe_xmit_pkts
+31.7049	864448	99.8816	0	0	0	0	0	0	0	0	0	0	pktgen	pktgen	/root/Pktgen-DPDK-pktgen-20.10.0/usr/local/bin/pktgen
+13.3982	0	0	0	0	0	0	0	0	0	0	0	0	librte_pmd_ixgbe.so.20.0.3	pktgen	ixgbe_recv_pkts_lro
+2.8057	0	0	0	0	0	0	0	0	0	0	0	0	librte_mbuf.so.20.0.3	pktgen	rte_pktmbuf_free
+2.4773	0	0	0	0	0	0	0	0	0	0	0	0	librte_mbuf.so.20.0.3	pktgen	rte_pktmbuf_clone
+1.9923	0	0	0	0	0	0	0	0	0	0	0	0	librte_mbuf.so.20.0.3	pktgen	__rte_pktmbuf_linearize
+1.2427	0	0	0	0	0	0	0	0	0	0	0	0	librte_mbuf.so.20.0.3	pktgen	rte_pktmbuf_pool_create_by_ops
+0.5882	0	0	0	0	0	0	0	0	0	0	0	0	ld-2.31.so	pktgen	/usr/lib/x86_64-linux-gnu/ld-2.31.so
+0.3798	0	0	0	0	0	0	0	0	0	0	0	0	librte_mbuf.so.20.0.3	pktgen	rte_pktmbuf_pool_init
+0.0075	0	0	0	0	0	0	0	0	0	0	0	0	igb	3:0-even	/igb
+0.0073	51	0.0059	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	asm_sysvec_apic_timer_interrupt
+0.0064	76	0.0088	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	prepare_exit_to_usermode
+0.0051	29	0.0034	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	__update_load_avg_se
+0.0044	29	0.0034	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	__update_load_avg_cfs_rq
+0.0039	29	0.0034	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	__irqentry_text_end
+0.0035	10	0.0012	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	_raw_spin_lock_irqsave
+0.0031	15	0.0017	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	read_tsc
+0.003	16	0.0018	0	0	0	0	0	0	0	0	0	0	kallsyms	pktgen	update_curr
+![image](https://user-images.githubusercontent.com/47310668/116279384-6ed6d880-a7c2-11eb-9a4d-a24a2ca16aa8.png)
+
+이게 rx 할때 이런 값들이 보이는거같다.
 
 
