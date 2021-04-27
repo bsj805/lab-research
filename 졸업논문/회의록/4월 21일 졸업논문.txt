@@ -1,0 +1,31 @@
+1. 각각의 symbol이 무슨 일을하는지? 중요한 애들만보자
+2. 왜 transmit 하는데 transmit이없냐.
+코어 하나에 대해서 receive하는애가 
+패킷만드는 코어에서는 패킷만 만들고 보내는거는 이쪽코어에서 보내는거 . 
+2. ixgbe_xmit_pkts 가 조금올랐어
+3. pcap_filter이 왜 높으냐 이런거 분석해서오자.
+
+4. pktgen을 vlan tag를 여러개로 해서 여러개의 container에게 
+packet을 전달하면 다 250씩 나오나? 
+이걸 다 100% CPU씩 주고 해봤을때랑
+같은 CPU에서만 container을 생성했을때 도 다 250씩나왔을까?
+
+5. SRIOV를 쓸 때
+
+6. 컨테이너 환경에서 
+
+연구방향 세가지
+
+-1.속도가 왜안나오는가 -> profiling을 통해서 bottleneck이 되는 함수를 파악한다.
+-2. SR-IOV 로 어떻게?
+-3. batching을 통해 성능향상이 가능한가? 실제 패킷이 어떻게 전달되는지에 대한
+call flow . -> profiling을 보면서 bottleneck을 파악해보자
+-4. symbol table에서 function name이랑 destination(binary file 위치라던지) 
+모듈단위라던지 SO shared object 
+libc, librte_pmd 이런거 뭉쳐서 binary 파일만들면 너무 크니까 링킹을 하지
+그래서 보이는거야. 
+한 패킷이 어떤 심볼이랑 어떤 과정을 통해 전송되는지 파악하고, 
+-5 한 패킷에 대해 path를 알아오자.
+
+7. OVS안에 들어가서 port를 보고 flow rule을 설정해줄수 있을것이다.
+그걸로도 해보자. 

@@ -1,0 +1,29 @@
+1. container에서 자원 limit 걸고 packet을 받아보기 (dpdk를 써서)
+컨테이너 두개가 50%씩 쓰면서 packet받아올수있나?ㅇㅇ 가능
+2. container에서 dpdk로 패킷받으면 그 컨테이너가 쓰는 cpu자원에
+dpdk로 쓰이는 cpu가 포함되는가?
+ㅇㅇ 맞다 근데 system에서쓰는 cpu가 있다. -> container에게 charge되지 않는 cpu 사용량이 존재.
+
+
+3. dpdk를 안쓴상태로 container에서 패킷을 받을 수 있는가?
+
+여러 유저 프로그램이 하나의 dpdk로 패킷을 나눠서 받을 수 있는가의 문제인거
+
+5. 컨테이너 여러개에 ip _flow 를 주어서 dpdk_pktgen으로 각각의성능이얼마나 나오나
+
+other_config:dpdk-hugepage-dir=/mnt/huge
+
+6. NF를 돌리는 서버가 범용서버에있는가. VNF같은 걸 만든다고 해도 이제 그들사이의 간섭은 상관이없기 때문에
+
+7.  accounting에 대한 문제 
+ DPDK 쓰지 않는 컨테이너의 CPU자원침해문제 (DPDK쓰는 컨테이너가하나인경우) -> SRIOV를 안쓰면 OVS를 쓰니까 migration의 이점이있다.
+ DPDK쓰는 컨테이너 사이에 CPU 문제
+ 현재 OVSDPDK 플랫폼에서는 system load가 너무 크다. 성능이 안나온다. 어떻게 늘릴수있는가?  (copy 배치사이즈 조절,
+ovs-dpdk에서의 cpu 제한걸기) -> vhost가 어떻게 packet을 전송하는지.
+ 
+
+8. DPDK를 쓰는 이유: kernel이 바틀넥이 될 수 있다 의 경우이다.  근데 USE CASE를 굳이생각해야하나?
+
+flow에 대해서 tx queue가존재해 -> 이것떄문에 drop이 발생해.
+
+
