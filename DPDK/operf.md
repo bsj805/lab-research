@@ -112,3 +112,6 @@ pktgen_operf_tx_10sec.txt은 10초동안 192.168.1.1로 보낸거
 
 <https://access.redhat.com/solutions/3394851> 여기
 vhost user의 작동원리
+
+https://medium.com/@jain.sm/kvm-and-qemu-as-linux-hypervisor-18271376449
+vhost에서 왜 virtqueue를쓰는가.
