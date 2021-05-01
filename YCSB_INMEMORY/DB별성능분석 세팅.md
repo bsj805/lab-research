@@ -40,7 +40,19 @@ mongo 192.168.0.2:27017
 sudo ./bin/ycsb load mongodb-async -s -P workloads/workloada > outputLoad.txt
 //이게 workload " a" 번째의 데이터를 넣어두는것.
 
- 
+mongo에서는
+show dbs
+use ycsb
+show collections;
+db.usertable.remove()
+db.stats();
+
+ ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
+ 이거하면된다. workloada를 담는거.
+ 어차피 docker를 포트포워딩해서 로컬에보내도 저기로간다.
+ ./bin/ycsb run mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0 > outputRun.txt
+load했으니 run하자.
+![image](https://user-images.githubusercontent.com/47310668/116787627-06e50280-aae0-11eb-8cf0-ce1885d3c6fd.png)
 
 ./bin/ycsb load mongodb -s -P workloads/workloadc -p recordcount=1000 -threads 2 -p mongodb.url="mongodb://cw-mongo-router:27017/ycsb"
 ./bin/ycsb load mongodb -s -P workloads/workloadc -p recordcount=1000 -threads 2 -p mongodb.url="mongodb://172.17.0.3:27017/ycsb"
@@ -50,4 +62,32 @@ mongodb://172.17.0.3:27017/ycsb
 하면 ycsb라는 이름의 db를만든다. 
 <https://eyeballs.tistory.com/174>
 
+
+
+####카산드라 cassandra
+
+설정파일은
+
+
+docker run --name cassandb -p 9042:9042 -d cassandra:3 
+
+vim /etc/systemd/system/cassandra.service 이게 초기환경
+vim /etc/cassandra/conf/cassandra.yaml 이게 그 뒤에 환경설정
+vim /etc/cassandra/cassandra.yaml
+rpc_address: 0.0.0.0 으로 설정,
+broadcast_rpc_address의 주석해제
+sudo systemctl daemon-reload
+sudo systemctl start cassandra.service
+sudo systemctl enable cassandra
+systemctl status cassandra.service 명령어로 active가 되어 있는지 확인하고 nodetool status로 현재 Cassandra의 상태를 확인할 수 있습니다.
+cqlsh -u cassandra -p cassandra 로 처음 접속 
+./bin/ycsb load cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
+./bin/ycsb run cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
+https://log-laboratory.tistory.com/243
+외부접속하려면 start_rpc:true
+Workload A: Update heavy workload: 50/50% Mix of Reads/Writes
+Workload B: Read mostly workload: 95/5% Mix of Reads/Writes
+Workload C: Read-only: 100% reads.
+
+출처: https://nowonbun.tistory.com/381 [명월 일지]
 
