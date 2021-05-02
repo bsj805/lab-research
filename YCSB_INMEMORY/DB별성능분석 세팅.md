@@ -84,10 +84,28 @@ cqlsh -u cassandra -p cassandra 로 처음 접속
 ./bin/ycsb load cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
 ./bin/ycsb run cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
 https://log-laboratory.tistory.com/243
-외부접속하려면 start_rpc:true
+외부접속하려면 start_rpc:true ->이게 서버를여는것이야
+
+
+1. 수정 항목 
+
+rpc_address: 0.0.0.0
+broadcast_rpc_address: 자기주소
+listen_address: 자기주소
+seeds : 자기주소
+ 
+
+2. 추가 항목 
+
+start_rpc: true
+
+이후 kill pid 하고 bin.cassandra하면 재시작.
+
 Workload A: Update heavy workload: 50/50% Mix of Reads/Writes
 Workload B: Read mostly workload: 95/5% Mix of Reads/Writes
 Workload C: Read-only: 100% reads.
 
 출처: https://nowonbun.tistory.com/381 [명월 일지]
+
+
 
