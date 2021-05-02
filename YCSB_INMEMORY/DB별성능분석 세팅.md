@@ -70,6 +70,7 @@ mongodb://172.17.0.3:27017/ycsb
 
 
 docker run --name cassandb -p 9042:9042 -d cassandra:3 
+docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
 
 vim /etc/systemd/system/cassandra.service 이게 초기환경
 vim /etc/cassandra/conf/cassandra.yaml 이게 그 뒤에 환경설정
