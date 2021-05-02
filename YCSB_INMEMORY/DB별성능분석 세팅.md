@@ -141,3 +141,6 @@ slf패키지가없어서 오류가난다.
 pom.xml을 들여다보면 slf4j 1.7.25가필요하대
 
 아마 pom.xml보면 cassandra는 3.0.0 으로하라는데 이거때문에그런거같은데?
+
+<https://github.com/brianfrankcooper/YCSB/issues/680>
+그냥 ycsb지원버전이아니라그래 카산드라 우리가 3.3 
