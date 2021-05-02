@@ -71,7 +71,7 @@ mongodb://172.17.0.3:27017/ycsb
 
 docker run --name cassandb -p 9042:9042 -d cassandra:3 
 docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
-
+docker run --name cassandb -v ~/cass/cassandra.yaml:/etc/cassandra/cassandra.yaml -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
 vim /etc/systemd/system/cassandra.service 이게 초기환경
 vim /etc/cassandra/conf/cassandra.yaml 이게 그 뒤에 환경설정
 vim /etc/cassandra/cassandra.yaml
@@ -82,11 +82,25 @@ sudo systemctl start cassandra.service
 sudo systemctl enable cassandra
 systemctl status cassandra.service 명령어로 active가 되어 있는지 확인하고 nodetool status로 현재 Cassandra의 상태를 확인할 수 있습니다.
 cqlsh -u cassandra -p cassandra 로 처음 접속 
-./bin/ycsb load cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
-./bin/ycsb run cassandra-cql -p hosts="127.0.0.1" -s -P workloads/workloada
+./bin/ycsb load cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
+./bin/ycsb run cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
 https://log-laboratory.tistory.com/243
 외부접속하려면 start_rpc:true ->이게 서버를여는것이야
-
+cqlsh> create keyspace ycsb
+    WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
+cqlsh> USE ycsb;
+cqlsh> create table usertable (
+    y_id varchar primary key,
+    field0 varchar,
+    field1 varchar,
+    field2 varchar,
+    field3 varchar,
+    field4 varchar,
+    field5 varchar,
+    field6 varchar,
+    field7 varchar,
+    field8 varchar,
+    field9 varchar);
 
 1. 수정 항목 
 
@@ -110,4 +124,20 @@ Workload C: Read-only: 100% reads.
 출처: https://nowonbun.tistory.com/381 [명월 일지]
 
 
+https://stackoverflow.com/questions/34645846/cannot-connect-to-cassandra-docker-with-cqlsh
+docker안의 cassandra랑 연결하려면 여러포트필요
 
+docker pull cassandra
+docker run --name cassandra -p 127.0.0.1:9042:9042 -p 127.0.0.1:9160:9160   -d cassandra 
+This will ensure the docker container maps to the IPv4.
+
+9160 - Thrift client API
+9042 - CQL native transport port
+
+<https://wuxiaomin98.wordpress.com/2016/02/29/benchmarking-cassandra-in-amazon-ec2-with-ycsb/>
+troubleshoot
+slf패키지가없어서 오류가난다. 
+
+pom.xml을 들여다보면 slf4j 1.7.25가필요하대
+
+아마 pom.xml보면 cassandra는 3.0.0 으로하라는데 이거때문에그런거같은데?
