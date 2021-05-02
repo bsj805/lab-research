@@ -100,6 +100,7 @@ seeds : 자기주소
 start_rpc: true
 
 이후 kill pid 하고 bin.cassandra하면 재시작.
+아니야. cassandra -R로 시작
 
 Workload A: Update heavy workload: 50/50% Mix of Reads/Writes
 Workload B: Read mostly workload: 95/5% Mix of Reads/Writes
