@@ -70,8 +70,13 @@ mongodb://172.17.0.3:27017/ycsb
 
 
 docker run --name cassandb -p 9042:9042 -d cassandra:3 
+
 docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
+
 docker run --name cassandb -v ~/cass/cassandra.yaml:/etc/cassandra/cassandra.yaml -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3.11
+
+sudo docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 9966:9966 -p 7199:7199 -d cassandra
+9966
 
 https://www.vultr.com/docs/how-to-install-apache-cassandra-3-11-x-on-ubuntu-16-04-lts
 
@@ -110,6 +115,10 @@ cqlsh> create table usertable (
     field7 varchar,
     field8 varchar,
     field9 varchar);
+    
+ 컨테이너 바깥에서 sudo bin/cplsh 127.0.0.1 9042 -u cassandra -p cassandra
+ 로 접속해놓고 workload돌리니까 
+ 
 
 1. 수정 항목 
 
