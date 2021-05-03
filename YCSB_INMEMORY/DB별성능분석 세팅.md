@@ -71,7 +71,13 @@ mongodb://172.17.0.3:27017/ycsb
 
 docker run --name cassandb -p 9042:9042 -d cassandra:3 
 docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
-docker run --name cassandb -v ~/cass/cassandra.yaml:/etc/cassandra/cassandra.yaml -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3
+docker run --name cassandb -v ~/cass/cassandra.yaml:/etc/cassandra/cassandra.yaml -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 -d cassandra:3.11
+
+https://www.vultr.com/docs/how-to-install-apache-cassandra-3-11-x-on-ubuntu-16-04-lts
+
+sudo ant -Duse.jdk11=true 아니면 그냥설치하고 ant로깔아보자 (gitclone 하고)
+
+
 vim /etc/systemd/system/cassandra.service 이게 초기환경
 vim /etc/cassandra/conf/cassandra.yaml 이게 그 뒤에 환경설정
 vim /etc/cassandra/cassandra.yaml
@@ -80,9 +86,12 @@ broadcast_rpc_address의 주석해제
 sudo systemctl daemon-reload
 sudo systemctl start cassandra.service
 sudo systemctl enable cassandra
+
 systemctl status cassandra.service 명령어로 active가 되어 있는지 확인하고 nodetool status로 현재 Cassandra의 상태를 확인할 수 있습니다.
 cqlsh -u cassandra -p cassandra 로 처음 접속 
+
 ./bin/ycsb load cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
+
 ./bin/ycsb run cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
 https://log-laboratory.tistory.com/243
 외부접속하려면 start_rpc:true ->이게 서버를여는것이야
