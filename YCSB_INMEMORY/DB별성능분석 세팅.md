@@ -48,6 +48,7 @@ db.usertable.remove()
 db.stats();
 
  ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0
+ ./bin/ycsb load mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://10.0.0.3:27017/ycsb?w=0
  이거하면된다. workloada를 담는거.
  어차피 docker를 포트포워딩해서 로컬에보내도 저기로간다.
  ./bin/ycsb run mongodb-async -s -P workloads/workloada -p mongodb.url=mongodb://localhost:27017/ycsb?w=0 > outputRun.txt
@@ -94,14 +95,17 @@ sudo systemctl enable cassandra
 
 systemctl status cassandra.service 명령어로 active가 되어 있는지 확인하고 nodetool status로 현재 Cassandra의 상태를 확인할 수 있습니다.
 cqlsh -u cassandra -p cassandra 로 처음 접속 
+cassandra 버전 3.11.10
+[cqlsh 6.0.0 | Cassandra 3.11.10 | CQL spec 3.4.4 | Native protocol v4]
 
 ./bin/ycsb load cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
-
+./bin/ycsb load cassandra-cql -p hosts=10.0.0.3 -s -P workloads/workloada
+./bin/ycsb run cassandra-cql -p hosts=10.0.0.3 -s -P workloads/workloada
 ./bin/ycsb run cassandra-cql -p hosts=127.0.0.1 -s -P workloads/workloada
 https://log-laboratory.tistory.com/243
 외부접속하려면 start_rpc:true ->이게 서버를여는것이야
 cqlsh> create keyspace ycsb
-    WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3 };
+    WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1 };
 cqlsh> USE ycsb;
 cqlsh> create table usertable (
     y_id varchar primary key,
@@ -115,9 +119,11 @@ cqlsh> create table usertable (
     field7 varchar,
     field8 varchar,
     field9 varchar);
-    
- 컨테이너 바깥에서 sudo bin/cplsh 127.0.0.1 9042 -u cassandra -p cassandra
- 로 접속해놓고 workload돌리니까 
+
+sudo docker run --name cassandb -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 9966:9966 -p 7199:7199 -d cassandra
+9966 하고
+ 컨테이너 바깥에서 sudo bin/cqlsh 127.0.0.1 9042 -u cassandra -p cassandra
+ 로 접속해놓고 workload돌리니까 된다.
  
 
 1. 수정 항목 
