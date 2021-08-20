@@ -998,3 +998,41 @@ Lightweight vitrtualization for serverless Application 같은거
 논문리뷰하는걸로 
 
 GPU의 resource sharing 
+ㅇ
+
+
+Dockerfile 제작
+```
+  1 FROM bruzn/ubuntunetplus:0.1
+  2 ARG DEBIAN_FRONTEND=noninteractive
+  3 ENV TZ=Asia/Seoul
+  4 RUN apt update -y
+  5 RUN apt-get upgrade -y
+  6 
+  7 RUN apt-get install -y tzdata
+  8 RUN apt-get install libelf-dev libnuma-dev pkg-config cmake libbsd-dev libpcap-dev  libkmod-dev oprofile -y
+  9 
+ 10 RUN apt install linux-headers-$(uname -r) -y
+ 11 
+ 12 WORKDIR /usr/src/
+ 13 RUN wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.08.tar.gz
+ 14 RUN tar -xvzf v20.08.tar.gz
+ 15 RUN git clone https://github.com/libbpf/libbpf.git
+ 16 WORKDIR /usr/src/libbpf/src
+ 17 
+ 18 RUN make && make install
+ 19 
+ 20 RUN cp /usr/lib64/libbpf* /usr/lib
+ 21 WORKDIR /usr/lib
+ 22 RUN rm libbpf.so
+ 23 RUN rm libbpf.so.0
+ 24 RUN ln -s libbpf.so.0.5.0 libbpf.so
+ 25 RUN ln -s libbpf.so.0.5.0 libbpf.so.0
+ 26 
+ 27 WORKDIR /usr/src/dpdk-20.08
+ 28 RUN meson -Dexamples=all build
+ 29 RUN ninja -C build
+ 30 RUN ninja -C build install
+ 31 RUN ldconfig
+ 32 
+```
