@@ -1,0 +1,23 @@
+0x980000000 에서
+0x800000000 만큼을
+
+컨테이너의 메모리에 대해서 shared memory를 만들고
+black에 공유를 한다.
+
+원래 흐름
+1. black에서 ens4f1을 통해 ovs-dpdk에서 만들어낸 (eal_get_virtual_area) 메모리 풀을 이용해 할당된 메모리에(heap_alloc)  mbuf 배열로 패킷을 받아온다.
+2. 이 mbuf 배열에 있는 패킷들이 copy_mbuf_to_desc로 컨테이너의 vhost가 만들어낸 virtqueue에 있는 descripter로 memcpy가 일어난다.
+3. 컨테이너에서 실행되고 있는 testpmd에서 이를 recv 하고 transmit한다.
+
+제가 생각한 흐름
+
+1. black에서 ens4f1을 통해 ovs-dpdk에서 만들어낸 (eal_get_virtual_area) 메모리풀을 이용해 할당된 메모리에 (heap_alloc) mbuf 배열로 패킷을 받아온다. 
+2. 근데 이 메모리풀은 컨테이너에서 실행되고 있는 testpmd에서 접근 가능한 shared memory이다. 
+3. 이 mbuf 배열에 있는 패킷들의 포인터를 컨테이너의 vhost가 만들어낸 virtqueue에 있는 descriptor에서 가져가도록 한다.
+4. 컨테이너에서 실행되고 있는 testpmd에서 이를 recv하면 포인터를 읽을 수 있다 (shared memory)  이를 transmit한다.
+
+
+컨테이너에서 shm 
+ens4f1으로 그 메모리에 받아온다 . -> 일단 두 메모리공간에 동시에 받는다. EMC 프로세싱할때 EMC가 걸러질때 
+ens4f1 ovs-dpdk EMC 프로세싱할때 한 컨테이너의 공유메모리로 옮긴다?
+shmat으로 발생하는문제. 여러컨테이너가 접근할때 

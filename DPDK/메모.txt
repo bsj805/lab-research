@@ -1,0 +1,59 @@
+testpmd.c
+<eal_memory_init>
+
+setting up physically contiguous memory 
+
+하는거래.
+
+
+shmget으로 1gb 메모리를 생성하고, 
+해당 메모리에 shmid를 반환해준다.
+
+shmat으로 해당 id의 공유메모리를 받아온다.
+
+
+testpmd.c -> start_packet_forwarding -> 
+
+
+copy_mbuf_to_desc 전까지 vring으로부터 desc를 충분히 받아와야 한다.
+이 desc는 mbuf를 가질 수 있는 버퍼가 있다.
+
+
+
+1. available ring에 mbuf 정보들이 있다.( NIC에서 mbuf 형태로 있던게 descriptor 형태로 available ring에 추가)
+
+2. 그 정보를 do_data_copy_enqueue에서 복사가 일어난다. 
+3. 여기는 batch[32] ->에 있는 정보를 
+
+
+
+
+
+
+처음에 rte_eal_init()
+
+eal_memory_init
+rte_eal_memory_init
+eal_memseg_init 이 메모리 세그먼트는 hugepage size, socket id 가 합쳐져 메모리 타입이 되는데 
+이 메모리 타입별로 하나의 메모리 세그먼트 리스트를 만들거야. 
+세그먼트리스트는, 포트 0번, 포트 1번에 대해 각각 하나씩 생긴다.
+
+이 세그먼트 리스트를 채우는 것은, mcfg->memsegs[msl_idx] 를 msl로 가져와서는, 
+여기 우리 함수가 들어간다. eal_memseg_list_init_shared(msl,pagesz, n_segs,socket_id, cur_seglist, true, msl_idx ) 
+
+
+여기서 mmap 부분을 보면, 우리는 shared memory로 받아온 주소를 mmap을 호출해서, 0010 0010 flag를 세팅하고, fd=-1, offset:0으로 했다.
+https://stackoverflow.com/questions/28575893/when-would-one-use-mmap-map-fixed
+우리가 shared memory로 받아온 주소가 VA에 속한 주소야. 즉, 
+
+
+근데 기존에 eal_mem_reserved를 생각해보면, contiguous한 영역을 얻어오려고 map fixed를 부르고, 
+
+
+
+
+mmap할떄 shared memory의 시작주소를 넣는다. 
+
+shared memory는 커지는 방향으로 1gb를 쓸 수 있다.
+
+mmap으로 리턴받는 포인터 주소값은 1gb만큼이 줄어든 값.

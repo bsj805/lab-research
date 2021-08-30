@@ -1,0 +1,300 @@
+115.145.175.132 black 
+
+115.145.179.202 white
+
+ovs-dpdk 세팅 순서
+byeon @ black 기준
+
+su root에서 하는거라면 
+$ export PATH=$PATH:/usr/local/share/openvswitch/scripts
+$ export DB_SOCK=/usr/local/var/run/openvswitch/db.sock
+
+/usr/src/dpdk-20.11/usertools/dpdk-devbind.py -b=vfio-pci 0000:03:00.1
+로 바인딩하고
+
+ovs-ctl --no-ovs-vswitchd start 로시작
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true
+ovs-ctl --no-ovsdb-server --db-sock="$DB_SOCK" start
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true other_config:dpdk-lcore-mask=0x2 other_config:dpdk-socket-mem="1024"
+ovs-vsctl set Open_vSwitch . other_config:pmd-cpu-mask=0x4 (현재 ovs는 2번코어 풀로쓰는중 0~9중 2)
+sudo ovs-vsctl add-br br0 -- set bridge br0 datapath_type=netdev
+sudo ovs-vsctl add-port br0 vhost-user0 -- set Interface vhost-user0 type=dpdkvhostuser
+ovs-vsctl add-port br0 dpdk-p0 -- set Interface dpdk-p0 type=dpdk options:dpdk-devargs=0000:03:00.1
+
+ovs-ofctl add-flow br0 dl_type=0x0800,nw_src=10.1.2.3/24,actions=output:"vhost-user0"
+ovs-ofctl add-flow br0 in_port="vhost-user1",dl_type=0x800,action=output:"vhost-user2"
+ovs-ofctl add-flow br0 in_port="vhost-user2",dl_type=0x800,action=output:"vhost-user1"
+ovs-ofctl add-flow br0 in_port="vhost-user0",dl_type=0x800,action=output:"vhost-user3"
+ovs-ofctl add-flow br0 in_port="vhost-user3",dl_type=0x800,action=output:"vhost-user0"
+
+ovs-vsctl add-port br0 dpdk-p0 -- set Interface dpdk-p0 type=dpdk options:dpdk-devargs=0000:03:00.1
+
+ovs-ofctl add-flow br0 in_port="dpdk-p0",dl_type=0x800,action=output:"vhost-user3"
+ip addr add 10.0.0.17/24 dev br0
+ip link set br0 up
+이럼 IP 설정 완료하고, ifconfig로 볼 수 있다. vhost virtual interface도 만들어
+ovs-ofctl dump-flows br0
+ovs-ofctl dump-ports br0 
+ovs-vsctl show 
+등으로 확인.
+
+아래 세개중 하나로 도커를 실행시킨다. 지금 난 privilege 떼고 2번창, privilege랑 cpu limit주고 3번창
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.2:/var/run ubuntunetplus  /bin/bash
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.2:/var/run  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash 
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.1:/var/run -v /dev/shm:/dev/shm  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash 
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.2:/var/run  bruzn/ubuntunetplus:2.0  /bin/bash
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  bruzn/ubuntunetplus:2.0  /bin/bash
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+
+ ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1,path=/var/run/vhost-net' -- -i --txd=1024 --rxd=1024 --nb-cores=1
+
+sudo docker run -it --cpus="1.0" --privileged -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+sudo docker run -it --cpus="1.0" -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+
+//privileged 모드는 https://tttsss77.tistory.com/153 시스템의 장치에 접근하기위함.
+Copyright (c) <2010-2020>, Intel Corporation. All rights reserved. Powered by DPDK
+EAL: Detected 10 lcore(s)
+EAL: Detected 1 NUMA nodes
+EAL: Multi-process socket /var/run/dpdk/pktgen/mp_socket
+EAL: Selected IOVA mode 'VA'
+EAL: No available hugepages reported in hugepages-2048kB
+EAL: Probing VFIO support...
+EAL:   cannot open VFIO container, error 2 (No such file or directory)
+EAL: VFIO support could not be initialized
+EAL: Failed to get current mempolicy: Operation not permitted. Assuming MPOL_DEFAULT.
+set_mempolicy: Operation not permitted
+EAL: eal_memalloc_alloc_seg_bulk(): couldn't find suitable memseg_list
+set_mempolicy: Operation not permitted
+EAL: FATAL: Cannot init memory
+EAL: Cannot init memory
+와 같이 pktgen 오류난다.
+
+
+apt update -y
+apt-get upgrade -y
+
+
+apt-get install libelf-dev libnuma-dev pkg-config cmake libbsd-dev libpcap-dev  libkmod-dev oprofile -y
+
+sudo apt install linux-headers-$(uname -r) -y
+
+apt install linux-headers-5.11.0-27-generic -y //자기 커널 버전에맞게 (uname -r)
+
+cd /usr/src
+wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.08.tar.gz
+tar -xvzf v20.08.tar.gz
+
+git clone https://github.com/libbpf/libbpf.git
+cd libbpf/src
+make && make install
+
+cp /usr/lib64/libbpf* /usr/lib
+cd /usr/lib
+rm libbpf.so
+rm libbpf.so.0
+ln -s libbpf.so.0.5.0 libbpf.so
+ln -s libbpf.so.0.5.0 libbpf.so.0
+
+ln -s libbpf.so.0.4.0 libbpf.so
+ln -s libbpf.so.0.4.0 libbpf.so.0
+
+cd /usr/src/dpdk-20.08
+meson -Dexamples=all build
+ninja -C build
+ninja -C build install
+ldconfig
+
+cd ~
+wget https://github.com/pktgen/Pktgen-DPDK/archive/refs/tags/pktgen-20.10.0.tar.gz
+tar -xvzf pktgen-20.10.0.tar.gz
+cd Pktgen-DPDK-pktgen-20.10.0/
+export RTE_SDK=/usr/src/dpdk-20.08
+export RTE_TARGET=build
+make
+./cfg/default.cfg 수정 해서 ./run.py default로 실행시키거나
+cd Builddir/app
+
+pktgen 실행시키는 파라미터 설정해보고,
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user0,mac=00:00:00:00:00:01,path=/var/run/openvswitch/vhost-user0 --vdev=net_virtio_user1,mac=00:00:00:00:00:02,path=/var/run/openvswitch/vhost-user1"
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user0,mac=00:00:00:00:00:01,path=/var/run/openvswitch/vhost-user0 --vdev=net_virtio_user3,mac=00:00:00:00:00:02,path=/var/run/openvswitch/vhost-user3"
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:03,path=/var/run/vhost-net --no-pci --vdev=net_virtio_user0,mac=00:00:00:00:00:01,path=/var/run/vhost-net"
+	,4.1"
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:03,path=/var/run/vhost-net"
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:03,path=/var/run/build/app/vhost-net"
+pktgen 안에서는
+cls 
+set 0 src ip 10.0.0.7/24
+set 0 dst ip 10.0.0.17/24와 같이 가능.
+set 0 count 100 로 몇개패킷보낼건지 가능
+set 0 size 로 몇바이트짜리패킷 보낼건지 가능.
+
+white에서의 pktgen은  /Pktgen 디렉토리에서 (Builddir 디렉토리가 존재하는)
+white@white-Z10PA-U8-Series:~/Pktgen-DPDK-pktgen-20.10.0$ ./tools/run.py defb
+./tools/run.py defb
+sudo -E usr/local/bin/pktgen -l 2,3-4 -n 2 --proc-type auto --log-level 8 --file-prefix pg -w 04:00.1 -- -v -T -P -j -m [3:4].0 -f themes/black-yellow.theme 
+
+root@58356f1466a0:~/Pktgen-DPDK-pktgen-20.10.0/Builddir/app# echo $DPDK_PARAMS                         -c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:03,path=/var/run/vhost-net
+sudo ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1,path=/var/run/vhost-net' -- -i --txd=1024 --rxd=1024 --nb-cores=1 --tx-ip=10.0.0.7,10.0.0.8
+./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1,path=/var/run/vhost-net' -- -i --txd=1024 --rxd=1024 --nb-cores=1
+
+실험
+
+
+블랙 네이티브에서
+sudo ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=1
+sudo ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1' --vdev 'eth_vhost1,iface=vhost-net,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=1 --tx-ip=10.0.0.7,10.0.0.8                                             
+블랙 컨테이너에서
+root@8908b57ed6d3:/usr/src/dpdk-20.08/build/app# ./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+ ./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/build/app/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+
+./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+
+
+
+./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/build/app/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1 
+//이거가맞을걸.
+
+/usr/src/dpdk-20.08/build/app# ./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/build/app/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+./testpmd -l 1-6 -n 4 --file-prefix=vhost --vdev 'net_vhost,iface=vhost-net,client=1,queues=1' --vdev 'net_vhost1,iface=vhost-net1,client=1,queues=1' --vdev 'net_vhost2,iface=vhost-net2,client=1,queues=1' --vdev 'net_vhost3,iface=vhost-net3,client=1,queues=1'  -- -i --port-topology=chained --nb-cores=4 --txd=1024 --rxd=1024
+./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+./build/app/dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/build/app/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+testpmd>set fwd mac
+testpmd>start
+이런식으로 늘릴 수 있는거같다.
+
+
+black 네이티브에서
+
+sudo ./dpdk-testpmd -l 5-7 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1' --vdev 'eth_vhost1,iface=vhost-net1,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=2 //코어수를 늘려준다.
+--tx-ip=10.0.0.7,10.0.0.8 
+
+vtap
+블랙 sudo ./dpdk-testpmd -l 5-7 -n 4 -v --file-prefix=vhost --vdev 'net_tap0,iface=foo0,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=1
+컨테이너 ./pktgen -c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_tap0,iface=foo0 -- -T -P -m "0.0"
+
+
+논문 내용 컨테이너와 연결하는 방법 중 vlan, src ip , src mac 등으로 flow 설정에 따른 성능변화
+
+OVS 세팅
+
+./boot.sh
+./configure --with-dpdk=static
+make
+sudo make install
+
+DPDK 세팅
+meson -Dexamples=all build
+ninja -C build
+ninja -C build install
+ldconfig
+
+
+ovs-ctl --no-ovs-vswitchd start
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true
+ovs-ctl --no-ovsdb-server --db-sock="$DB_SOCK" start
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true other_config:dpdk-lcore-mask=0x2 other_config:dpdk-socket-mem="1024"
+ovs-vsctl set Open_vSwitch . other_config:pmd-cpu-mask=0x4
+
+ovs-vsctl add-br br0 -- set bridge br0 datapath_type=netdev
+ovs-vsctl add-port br0 vhost-user0 -- set Interface vhost-user0 type=dpdkvhostuser
+ovs-vsctl add-port br0 dpdk-p0 -- set Interface dpdk-p0 type=dpdk options:dpdk-devargs=0000:03:00.1
+ovs-ofctl add-flow br0 in_port="vhost-user0",dl_type=0x800,action=output:"dpdk-p0"
+ip addr add 10.0.0.17/24 dev br0
+ip link set br0 up
+
+export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user0,mac=00:00:00:00:00:01,path=/var/run/openvswitch/vhost-user0 "
+./pktgen $DPDK_PARAMS -- -T -P -m "0.0"
+
+
+dpdk-p0의 rx가 하나 증가
+vhost-user의 tx가 하나증가
+
+->device->name
+
+4763 void __rte_cold                                                                                                                                                                       
+4764 ixgbe_set_rx_function(struct rte_eth_dev *dev)                                                                                                                                        
+4765 {                                                                                                                                                                                     
+4766     uint16_t i, rx_using_sse;                                                                                                                                                         
+4767     struct ixgbe_adapter *adapter = dev->data->dev_private;                                                                                                                           
+4768     FILE *fp;                                                                                                                                                                         
+4769     fp=fopen("/home/black/hello.txt","w");                                                                                                                                            
+4770     fprintf(fp,"hello world");                                                                                                                                                        
+4771     //VHOST_LOG_CONFIG(INFO,"vring_hello");                                                                                                                                           
+4772     fclose(fp);                        
+
+fprintf 도 stdio.h
+
+(testpmd iofwd.c)
+rte_eth_tx_burst
+(librte_ethdev/rte_ethdev.h)
+rte_eth_tx_burst
+(rte_eth_vhost.c)
+rte_pmd_vhost_probe
+eth_vhost_tx
+
+(virtio_net.c)
+rte_vhost_enqueue_burst
+virtio_dev_rx
+virtio_dev_rx_split
+copy_mbuf_to_desc
+
+
+13번 ixgbe_txrx.c 함수불린다.
+
+
+
+mempools[i] 이렇게 mbuf_pool_create이 되는데,
+
+testpmd.c 의 1572번째 줄 에서 (init_config)
+mbuf_pool_create (testpmd.c) -> rte_mp = rte_pktmbuf_pool_create(pool_name, nb_mbuf,mb_mempool_cache, 0, mbuf_seg_size, socket_id); nb_mbuf=155456 mbuf_seg_size=2176
+rte_pktmbuf_pool_create [ring_mp_mc가 best] (testpmd.c) -> 2번째인자가 155456으로 불리고 data_room-size, 뒤에서 2번째 인자가 2176으로
+rte_pktmbuf_pool_create (/lib/librte_mbuf/rte_mbuf.c) -> 
+rte_pktmbuf_pool_create_by_ops (전과동)    2번째인자가 155456 (mbuf개수)고      data_room_size가 2176인데 이게 elt_size에서 mbuf private의 크기==0, 그래서 eltsize= sizeof(rte_mbuf )+data_room_size 가 rte_mempool_create_empty 3번째인자, mbuf개수가 2번째인자. cache_size=250
+->rte_mempool_create_empty (librte_mempool/rte_mempool.c)   mz = rte_memzone_reserve(mz_name, mempool_size, socket_id, mz_flags);
+-> rte_memzone_reserve (librte_eal/common/eal_common_memzone.c) rte_memzone_reserve_thread_safe(name, len, socket_id,flags, RTE_CACHE_LINE_SIZE, 0);
+->rte_memzone_reserve_thread_safe (전과동)  mcfg=rte_eal_get_configuration() ->mem_config mz = memzone_reserve_aligned_thread_unsafe(name, len, socket_id, flags, align, bound); 
+->mz = memzone_reserve_aligned_thread_unsafe <로그> (전과동)
+-> malloc_heap_alloc_on_heap_id <로그>(librte_eal/common/malloc_heap.c)   malloc_he_alloc_on_heap_id  @6@ -> 여기서 malloc_socket_to_heap_id 할때 이미 heap이 allocate되어있다.
+heap_alloc 이 불리는데,  heap_alloc 자체는 heap_alloc 22 였는데 이거 로그이름을 바꿨고, 
+malloc_elem_alloc
+
+그래서 보면 heap_alloc22.txt를 보면 처음엔 NULL이 return 되고 그 이후부터 계속 할당하는 element가 있단말이야. 그리고 또 
+linked list에 계속 집어넣는 방식으로 free lsit가 이어져. 시간순서는 malloc_heap-> malloc_he_alloc_on_heap_id->heap_alloc22
+
+malloc_socket_to_heap_id 보면 mcfg=rte_eal_get_configuration()->mem_config 이건데 여기서 malloc_heaps의 id와 비교해서 heap을 찾아가는데, 
+
+
+아냐 init
+testpmd.c 에서 main에서 rte_eal_init에서 
+rte_eal_memzone_init이나 rte_eal_memory_init이나
+그아래쪽들중하나인거같아요
+
+mmap(requested_addr,size,PROT_NONE,MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0 )
+
+return mem_map(requested_addr, size, PROT_NONE, sys_flags, -1, 0);
+이건 사실
+mmap(NULL,size,PROT_NONE,sys_flags,-1,0)인데
+
+
+
+
+
+testpmd에서 setup_extmem도 이걸부르고,
+
+rte_malloc_heap_create 에서는 empty heap에 대해서 정보를 채워
+
+malloc_heap_create (librte_eal/common/malloc_heap) 에서 init이 이뤄지는거같긴한데. mcfg->heap 
+
+
+rte_zmalloc 도 rte_malloc_socket 부른다. malloc_socket 부르고 malloc_heap_alloc 부르고, -> 이게 malloc_heap_alloc_on_heap_id 
+
+
+initialization할 때나 시작하기 직전에 vhost의 모든 메모리공간과 free list의 모든 free space를 mapping시켜놓는다?
+
+
+
+783 나왔음

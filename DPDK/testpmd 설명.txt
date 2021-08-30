@@ -1,10 +1,12 @@
 testpmd 옵션
 --tx-ip=SRC,DST ip줄 수 있다 (-- 뒤에_ 
+
 https://doc.dpdk.org/guides/testpmd_app_ug/testpmd_funcs.html
 https://doc.dpdk.org/guides/testpmd_app_ug/run_app.html
 --tx-udp=SRC[,DST] 포트번호를정할수있다.
  sudo ./dpdk-testpmd -l 0-2 -n 2 -- -i --portmask=0x1 --burst=64 --tx-ip=10.0.0.7,10.0.0.8
 1번포트 쓰겠다 (portmask)
+
 
 그럼 이상태에서 10.0.0.7이 src ip로 정해져서 패킷이 뭔가들어오는데
 다 드랍시켜버린다. 
@@ -55,3 +57,11 @@ set eth-peer 0 38:ea:6a:06:1b:1a 와 같이 하면된다.(https://www.youtube.co
 
 sudo ovs-ofctl add-flow br0 in_port=2,dl_type=0x800,idle_timeout=0,action=output:3
 ovs-ofctl del-flows br0 in_port=dpdk0,dl_type=0x800,out_port=7
+
+sudo ./dpdk-testpmd -l 7-8 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=1 --tx-ip=10.0.0.7,10.0.0.8
+root@8908b57ed6d3:/usr/src/dpdk-20.08/build/app# ./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1 --tx-ip=10.0.0.8,10.0.0.7
+
+set fwd io를 한 뒤 ,
+이러면 0번이 ens4f1이고 1번이 
+
+show fwd stats all

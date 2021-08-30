@@ -1,22 +1,39 @@
 RUN docker run -it --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE"
-docker run -it --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev -v /mnt/huge:/mnt/huge --name contdpdk ubuntunet
+docker run -it --privileged -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev -v /mnt/huge:/mnt/huge --name contdpdk ubuntunetplus
+docker run -it --privileged -p 9042:9042 -p 9160:9160 -p 7000:7000 -p 7199:7199 --name cassan3112 ubuntunetplus
 
-apt install meson -y && apt install python3-pyelftools -y && apt install libnuma-dev -y && apt install build essential -y && apt install vim -y
-apt install git pciutils iproute2 wget libelf-dev -y 
-apt install linux-headers-5.8.0-44-generic -y
-apt-get upgrade libelf-dev -y
-apt-get install kmod libssl-dev zfsutils-linux sudo binutils-dev -y
-apt-get install zlib1g-dev flex byacc libpcre2-8-0 libjemalloc-dev libtool libtool-bin -y
+
+
+testpmd docker
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /sys/bus/pci/drivers:/sys/bus/pci/drivers -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev -v /usr/local/var/run/openvswitch:/var/run/openvswitch --name conttestpmd ubuntunetplus
+pktgen docker
+
+#apt install meson  -y && apt install python3-pyelftools -y && apt install libnuma-dev -y && apt install build essential -y && apt install vim -y
+#apt install git pciutils iproute2 wget libelf-dev -y 
+#apt install linux-headers-5.8.0-44-generic -y
+#apt-get upgrade libelf-dev -y
+#apt-get install kmod libssl-dev zfsutils-linux sudo binutils-dev -y
+#apt-get install zlib1g-dev flex byacc libpcre2-8-0 libjemalloc-dev libtool libtool-bin -y
 
 
 시작되면
+apt update -y
+apt-get upgrade -y
+
+
 apt-get install libelf-dev libnuma-dev pkg-config cmake libbsd-dev libpcap-dev  libkmod-dev -y
 
-mkdir /mnt/huge
-mount -t hugetlbfs pagesize=1GB /mnt/huge
-wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.11.tar.gz
-tar -xvzf v20.11.tar.gz
-cp -r dpdk-20.11 /usr/src/
+
+#mkdir /mnt/huge 이미 됨
+#mount -t hugetlbfs pagesize=1GB /mnt/huge 이미됨
+#wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.11.tar.gz
+wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.08.tar.gz
+#apt install linux-headers-5.8.0-48-generic -y //자기 커널 버전에맞게 (uname -r)
+apt install linux-headers-$(uname -r) -y 
+
+#tar -xvzf v20.11.tar.gz
+tar -xvzf v20.08.tar.gz
+cp -r dpdk-20.08 /usr/src/
 git clone https://github.com/libbpf/libbpf.git
 cd libbpf/src
 make && make install
@@ -26,8 +43,8 @@ cp /usr/lib64/libbpf* /usr/lib
 cd /usr/lib
 rm libbpf.so
 rm libbpf.so.0
-ln -s libbpf.so.0.4.0 libbpf.so
-ln -s libbpf.so.0.4.0 libbpf.so.0
+ln -s libbpf.so.0.5.0 libbpf.so
+ln -s libbpf.so.0.5.0 libbpf.so.0
 ln -s /usr/src/linux-headers-$(uname -r) ~/build
 cd /usr/src
 git clone git://dpdk.org/dpdk-kmods
@@ -63,19 +80,21 @@ export DPDK_DIR=/usr/src/dpdk-20.11
 export DPDK_BUILD=$DPDK_DIR/build
 cd /usr/src/dpdk-20.11
 meson -Denable_kmods=true -Dexamples=all build
+meson -Dexamples=all build
 ninja -C build
 ninja -C build install
 ldconfig
 
 wget https://github.com/pktgen/Pktgen-DPDK/archive/refs/tags/pktgen-20.11.3.tar.gz
+#wget https://github.com/pktgen/Pktgen-DPDK/archive/refs/tags/pktgen-20.10.0.tar.gz
 tar -xvzf pktgen-20.11.3.tar.gz
 
-wget https://github.com/DPDK/dpdk/archive/refs/tags/v20.08.tar.gz
+
 
 cd Pktgen-DPDK-pktgen-20.11.3/
 export RTE_SDK=/usr/src/dpdk-20.11
 export RTE_TARGET=build
-#https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html 를 참고
+#https://pktgen-dpdk.readthedocs.io/en/latest/getting_started.html 를 참고 (make)
 ./cfg/default.cfg 수정
 cp /usr/src/dpdk-20.11/build/kernel/linux/igb_uio/igb_uio.ko /usr/src/dpdk-20.11/build/kmod
 ./run.py defB
@@ -86,6 +105,10 @@ cp /usr/src/dpdk-20.11/build/kernel/linux/igb_uio/igb_uio.ko /usr/src/dpdk-20.11
 
 #black은 Pktgen 20.10.0 (DPDK 20.08.0)
 
+$ ovs-vsctl add-port br0 dpdk-p0 -- set Interface dpdk-p0 type=dpdk \
+    options:dpdk-devargs=0000:01:00.0
+$ ovs-vsctl add-port br0 dpdk-p1 -- set Interface dpdk-p1 type=dpdk \
+    options:dpdk-devargs=0000:01:00.1
 
 black: 10.0.0.6/24
 00:00:00:00:00:04
@@ -105,26 +128,124 @@ white 10.0.0.9/24
 
 white Pktgen:/> set 1 src ip 10.0.0.8/24
 white Pktgen:/> set 0 src ip 10.0.0.9/24
-
+white Pktgen:/>set 1 dst ip 10.0.0.7
+white Pktgen:/>set 0 dst ip 10.0.0.6
+port0-port0 port1-port1
+black Pktgen:/> set 1 src ip 10.0.0.7/24
+black Pktgen:/> set 0 src ip 10.0.0.6/24
+black Pktgen:/>set 1 dst ip 10.0.0.8
+black Pktgen:/>set 0 dst ip 10.0.0.9
 03:00.1 출발 04:00.0 도착 가능.
 
 
+sudo -E ./usr/local/bin/pktgen -l 2,3-4,5-6 -n 2 --proc-type auto --log-level 7 --file-prefix pg -w 04:00.0 -w 04:00.1 -- -v -T -P -j -m [3:4].0 -m [5:6].1 -f themes/black-yellow.theme A support
+sudo -E ./usr/local/bin/pktgen -d librte_net_ena.so -l 2,3-4,5-6 -n 2 --proc-type auto --log-level 7 --file-prefix pg -w 04:00.0 -w 04:00.1 -- -v -T -P -j -m [3:4].0 -m [5:6].1 -f themes/black-yellow.theme A support
+
+top을 보니까 kube-apiserver가 막 치고올라와 패킷보낼때
+뭔가차단을한다는거겠지?
+sudo systemctl stop kubelet
+
+아냐 좋아. dpdk on host는 20.11인데 dpdk on container는 20.08으로도 작동한다
+ovs만 잘 세팅해보자.
+
+ovs-ctl --no-ovs-vswitchd start 로시작
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true
+ovs-ctl --no-ovsdb-server --db-sock="$DB_SOCK" start
+ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true other_config:dpdk-lcore-mask=0x2 other_config:dpdk-socket-mem="1024"
+ovs-vsctl set Open_vSwitch . other_config:pmd-cpu-mask=0x4 (현재 ovs는 2번코어 풀로쓰는중 0~9중 2)
+ovs-ofctl add-flow br0 in_port="vhost-user1",dl_type=0x800,action=output:"vhost-user2"
+ovs-ofctl add-flow br0 in_port="vhost-user2",dl_type=0x800,action=output:"vhost-user1"
+ovs-ofctl add-flow br0 in_port="vhost-user0",dl_type=0x800,action=output:"vhost-user3"
+ovs-ofctl add-flow br0 in_port="vhost-user3",dl_type=0x800,action=output:"vhost-user0"
+ovs-vsctl add-port br0 dpdk-p0 -- set Interface dpdk-p0 type=dpdk     options:dpdk-devargs=0000:03:00.1
+ip addr add 10.0.0.17/24 dev br0
+ip link set br0 up
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+sudo docker run -it --cpus="1.0" --privileged -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+sudo docker run -it --cpus="1.0" -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+privileged 모드는 https://tttsss77.tistory.com/153 시스템의 장치에 접근하기위함.
+컨테이너 위
+10.0.0.10/24
 
 
+sudo ovs-docker add-port br0 eth1 contdpdk --ipaddress=10.0.0.10/24
+
+        Port "69fe63d68bea4_l"
+            Interface "69fe63d68bea4_l"
+
+이게 69fe63d68bea4_l
+
+sudo ovs-docker add-port br0 eth1 36a584fbf028 --ipaddress=10.0.0.11/24
+이게 846e87adadf94_l
+        Port "846e87adadf94_l"
+            Interface "846e87adadf94_l"
+byeon@black-Z10PA-U8-Series:/usr/local/var/log/openvswitch$ sudo ovs-ofctl show br0
+[sudo] password for byeon: 
+OFPT_FEATURES_REPLY (xid=0x2): dpid:0000a0369f9c9304
+n_tables:254, n_buffers:0
+capabilities: FLOW_STATS TABLE_STATS PORT_STATS QUEUE_STATS ARP_MATCH_IP
+actions: output enqueue set_vlan_vid set_vlan_pcp strip_vlan mod_dl_src mod_dl_dst mod_nw_src mod_nw_dst mod_nw_tos mod_tp_src mod_tp_dst
+ 2(dpdk1): addr:a0:36:9f:9c:93:06
+     config:     0
+     state:      LINK_DOWN
+     current:    AUTO_NEG
+     speed: 0 Mbps now, 0 Mbps max
+ 3(dpdk0): addr:a0:36:9f:9c:93:04
+     config:     0
+     state:      LINK_DOWN
+     current:    AUTO_NEG
+     speed: 0 Mbps now, 0 Mbps max
+ 5(69fe63d68bea4_l): addr:2e:6e:dc:46:36:2b
+     config:     0
+     state:      0
+     current:    10GB-FD COPPER
+     speed: 10000 Mbps now, 0 Mbps max
+ 6(846e87adadf94_l): addr:e2:05:70:f9:a2:27
+     config:     0
+     state:      0
+     current:    10GB-FD COPPER
+     speed: 10000 Mbps now, 0 Mbps max
+ LOCAL(br0): addr:a0:36:9f:9c:93:04
+     config:     PORT_DOWN
+     state:      LINK_DOWN
+     current:    10MB-FD COPPER
+     speed: 10 Mbps now, 0 Mbps max
+OFPT_GET_CONFIG_REPLY (xid=0x4): frags=normal miss_send_len=0
+
+그러면 vhost-user-client를 만들면 그 클라이언트는 vhost-user이랑 연결이되는거야. 
+vhost-server가 vhost user socket을 만들고, 관리하고, 파괴하는데,  (https://access.redhat.com/solutions/3394851)
+eal 옵션은 -- 전에들어가야한다. --vdev가 eal 옵션이래 이건 add a virtual device 래. 
+--no -pci는 disable pci bus
+
+207. vm2vm vhost-user/virtio-pmd test plan
+https://doc.dpdk.org/dts/test_plans/vm2vm_virtio_pmd_test_plan.html
+
+ovs-vsctl add-port br0 vhost-user5 -- set Interface vhost-user5 type=dpdkvhostuser
+
+컨테이너 만들기
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge  -v /usr/local/var/run/openvswitch:/var/run/openvswitch ubuntunetplus /bin/bash
+하나는 
+/mnt/huge_dpdk:/mnt/huge 와 같이 해보는게 낫겠다. 메모리가부족하다네.
+
+pktgen export DPDK_PARAMS="-c 0x19 --master-lcore 3 -n 1 --socket-mem 1024 --file-prefix pktgen --no-pci --vdev=net_virtio_user5,mac=00:00:00:00:00:08,path=/var/run/openvswitch/vhost-user5"
 
 
+ovs-dpdk종료방법
+ovs-appctl -t ovs-vswitchd exit
+ovs-vsctl del-br br0
+ifconfig ens4f1 inet 10.0.0.4 netmask 255.255.255.0
+
+ovs-vsctl add-port br1 ens4f1 이게 되네.
 
 
+testpmd export DPDK_PARAMS="-c 0xE0 --master-lcore 5 -n 1 --socket-mem 1024 --file-prefix testpmd --no-pci --vdev=net_virtio_user12,mac=00:00:00:00:00:12,path=/var/run/openvswitch/vhost-user12 --vdev=net_virtio_user13,mac=00:00:00:00:00:13,path=/var/run/openvswitch/vhost-user13"
+export TESTPMD_PARAMS="--burst=64 -i --coremask=0xc0"
 
 
+vhost user
 
+vhost-user를 붙일수 있는? 다른 
 
+ovs-> flow를 설정했을때 dpdk 어플리케이션을 안써도 받을수가있는가?
 
-
-
-
-
-
-
-
-
+dpdk 패

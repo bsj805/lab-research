@@ -1,0 +1,204 @@
+0x7f05 6f94 b000
+          4000 0000
+do_data_copy_enqueue|elem.dst:0x7f8d70709680, elem.src:0x7f8c69879980, elem.len:60
+heap에서 alloc한 포인터 0x7f8d705b2f80
+
+heap->last는 0x7f8d8713bf80
+
+stack grows toward lower address
+
+heap grows toward higher address 
+
+
+56이 0번포트
+4a가 1q번포트
+0x7f0e f224 4000   0-0 포트 0번꺼  -> rte_eal_init 에서 eal_check_mem_on_local_socket() memseg_list_walk_thread_unsafe 보면, 얘만 존재한다.
+25399 ret value:1 base_va:0x7f0ef2244000 page_sz:1073741824
+
+rte_service:0x7f0f 3224 2000 이게 rte_service_init에서 실행돼 ( 이게 calloc으로 받아온건데 이게 malloc_socket에서 받아온것으로,
+malloc_socket은 available socket의 메모리를 사용한다) 
+그래서 ptr을 return 하는데 이 ptr은 malloc_heap_alloc(type(rte_service),size(8192)) 이런식으로 호출한다.
+이 socket의 id는 0이야.
+
+처음에 heap_alloc 들어갔을 때 이 함수는 heap으로부터 block of memory를 받아오기 위함이야.
+이는 free list를 lock하고, scan하고, add a new memsegment if scan fails. 
+새 memsegment가 added면, re-scans and should return the new element after releasing the lock.
+
+처음에보면,  @!0!@allocate heapname=socket_0 heap->last=(nil) heapsize=0 element
+
+heap이 아무것도 없어. 
+
+그래서elem = find_suitable_element(heap, size, flags, align, bound, contig);
+이걸 불러서 들어가보면, 
+
+msl->base_va, msl->page_sz 
+
+0x7f0f 1b80 f680 src가 이거인 do_data_copy_enqueue
+
+0x7f0f 1b80 f680
+
+0x7f0e b224 4000
+
+
+
+
+0x7f0e 2987 9980
+          4000 0000
+
+0x7f0f 1b80 f680
+
+0x7f0 5a  f94b000
+
+0x7f0 56  f94b000
+
+
+shared memory 
+
+56 ~ 5a 까지 쓸수있다
+
+
+if(resize_and_map) 에 들어가면 shared address 주소인 data주소랑 같은게 반환된다.
+ 
+0x7f0ef2244000
+        2947A100
+
+
+
+drivers/net/vhost/rte_eth_vhost.c -> eth_dev_vhost_create에서 정의된 tx_pkt_burst-> eth_vhost_tx ->rte_vhost_enqueue_burst
+lib/librte_vhost/virtio_net.c  -> (rte_vhost_enqueue_burst) ->(virtio_dev_rx) -> virtio_dev_rx_split
+
+
+포인터만 저장하는거
+ixgbe는 dev->rx_pkt_burst = ixgbe_recv_pkts_vec (우리 black host)
+컨테이너 안에서는
+drivers|net|virtio|virtio_ethdev.c| tx=virtio_xmit_pkts_inorder
+drivers|net|virtio|virtio_ethdev.c| rx=virtio_recv_pkts_inorder
+이건 drivers|net|virtio|virtio_rxtx.c 에 존재.
+가 실행된다.
+
+eth_dev->tx_pkt_burst = eth_vhost_tx;   
+아래의 tx_pkts 라는 rte_mbuf ** 배열은, iofwd.c에 정의된  struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+호출은 (*dev->tx_pkt_burst)(dev->data->tx_queues[queue_id], tx_pkts, nb_pkts);
+실행은 eth_vhost_tx(void *q, struct rte_mbuf **bufs, uint16_t nb_bufs)
+
+1,398,101 이만큼의 64바이트 패킷을 쓸 수 있다. (192를 차지한다는 가정하에)
+
+used ring에 있는 mbuf해제할 때 처럼 다시 해제 
+155167 개만 받았다.
+
+fp=fopen("/home/black/malloc_he_alloc_on_heap_id.txt","a");
+
+
+이게 컨테이너의 첫 패킷 주소값                                                     0x1697f8940 (cookie 값)  
+이게 host에서 보내는 첫 패킷 dst 값                                           0x7f2ee97f8a40 
+						차이 :    0x7F2D 8000 0100
+
+이게 두번째                                                                                0x1697f9280 (cookie 값)
+이게 host에서 보내는 두번째 패킷 dst 값                                     0x7f2ee97f9380
+						차이 :    0x7F2D 8000 0100
+								1
+							0x7F2D 8000 0101
+							1값을 얻고 + memeory_segment 를 참조하도록 바꿔놓기
+30개중
+1번째: 
+0x1697f9bc0
+0x7f2ee97f9cc0
+7F2D 8000 0100
+
+30번쨰
+
+0x16980a800
+0x7f2ee980a900
+7F2D 8000 0100
+
+
+새로 해본거
+0x1697f8940
+0x7f7c297f8a40
+
+0x16980a800
+0x7f7c2980a900
+
+7F7A C000 0100
+
+(int*)0x7f7c2980a900=
+
+0x7feb85516000 0  INIT에서 생긴거 
+0x7feb05516000 1
+0x7feb45516000 elem list의 마지막 ALLOC에서 생긴거
+0x7feb6edb5380 패킷이 ELEM LIST의 마지막 주소 msl->base_va랑 동일.
+
+0x7feb45516000
+0x7feb45516000
+
+0x7f9e 274f 9000
+0x7f9d e74f 9000
+
+
+
+0x7f6e 03a9 7000 0번포트
+0x7f6e 03a9 7000
+0x7f6e 2d05 d340 패킷 주소
+
+
+lib/librte_vhost/virtio_net.c
+
+
+
+
+
+
+lib/lirte_vhost/vhost_user.c/virtio_is_ready 를 보면 여기서 virtio is now ready for processing이 불리니까.
+이거 전에 file을 열어서 /home/black/cpp/a.cpp 와 같이 포인터주소를 받아와서 (container에서는 shmat할때 파일로저장)
+여기서 이제 /lib/librte_vhost/vhost.h에 추가된 전역변수에 포인터를 저장한다.
+
+그럼 dev_rx_split 에서 copy_mbuf_to_desc안에를 보면, batch_copy 쯤에서 desc[i].addr을 접근하면
+이게 virtio_recv_pkts_inorder (docker안에서불리는) desc[i]->addr에 접근하는거랑 같은 주소란 말야
+
+즉 desc[i].addr= host의 shared memory 출발지에서 얼마나 떨어져있는지 offset + docker에서 배정한 sharedmemory pointer 연산
+이런식으로 배정하고
+virtio_recv_pkts_inorder에서 desc[i]->addr에 접근해서 이걸 cookie대신써.
+
+나중에 memory는 해제 안해도되고, 그냥 다시 처음거에 덮어쓰자. memset(shrmem시작점, 0,임의의 패킷개수 * sizeof(rte_mbuf)) 이런식으로
+뭐 한계를 50000개 정도로 정해놓고 memset으로 한번에 ?
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+
+0x 7f8815d85000 이게 host shm 시작점
+0x 7f887f34b340 이게 패킷 src
+0x 7fb8ef4c8340 이게 container쪽 받은 패킷 src ( desc->addr)
+0x 7fb885f02000  cont쪽 shm 시작점
+
+
+0x 7f88 15d8 5000 이게 host shm 시작점
+0x 7f88 7f34 b340 이게 패킷 src
+0x 7fb8 ef4c 8340 이게 container쪽 받은 패킷 src ( desc->addr)
+0x 7fb8 85f0 2000  cont쪽 shm 시작점
+
+0x 7fb8 85f0 2000
+0x 7f88 7f34 b340
+
+
+695C 6340 이게 offset
+
+
+0x7fce cc57 a680 이게 컨테이너에서 받은 addr
+0x7fce 62fa f000 이게 시작점
+0x7f0f 312f d000 이게 host 시작점
+
+
+0x7fce cc57 a680
+
+m은 0x7f0f 9a8c 8580
+0x7f0f 9a8c 8600
+m->bufaddr은 0x7f0f9a8c8600
+
+===set_rxtx_funcs virtio/virtio_ethdev.c===                                                    │build.ninja  cscope.out           dpdk-stable-20.11.2_cont  v20.08.tar.gz
+|drivers|net|virtio|virtio_ethdev.c| tx=virtio_xmit_pkts_inorder                               │cont_dpdk    dpdk-stable-20.11.2  dpdk-stable-20.11.2_succ
+|drivers|net|virtio|virtio_ethdev.c| rx=virtio_recv_pkts_inorder                               │byeon@black-Z10PA-U8-Series:~$ ls
+|drivers|net|virtio|virtio_rxtx.c|addr=0x7fcecc57a680  [i]=0                                   │build.ninja  cscope.out           dpdk-stable-20.11.2_cont  v20.08.tar.gz
+|drivers|net|virtio|virtio_rxtx.c|cookie addr=0x7fcecc57a680
+
+
+지금 cookie 바꾼데에서 문제가 생겨 (segmentation fault)
+왜냐 기존에 src 패킷 
