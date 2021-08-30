@@ -1,0 +1,11 @@
+회의내용
+
+1. zero copy에 대해서 생각해본다. ( 컨테이너 하나로 제한, mempool 바닥나는거 허용) 
+- 이유? : NIC에서 받는 부분을 보니 단순히 receive queue가 꽉차서 drop이 늘어난다 . -> 관련 추가 확인 - 코드
+적어놓기. 그러니 EMC 부분이나, vhost에 가는 부분이 문제일 것이다. 이를 zero copy로 해보자.
+
+2. 큐를 shared memory로 해서 vhostuser에서 공유가 가능하도록 구현해보기
+
+3. emc 스킵하면 성능이 잘 나오긴하는지?  (아니겠지. memory copy가 유일한 overhead일까?)
+
+4. horizontal scaling느낌으로 접근하면 연구목적이 영 흔들린다.

@@ -1,0 +1,63 @@
+
+1.Bottleneck으로 추정되는 부분 copy 부분과 
+( rte_vhost_enqueue_burst) - copy_mbuf_to_desc - rte_memcpy 부분
+
+2. address translation 부분 (IOMMU related part? 인지 아닌지) 
+( rte_vhost_enqueue_burst) - copy_mbuf_to_desc - gpa_to_vva(dev,desc->addr) 부분
+
+3. while (cnt && (retries++ <= VHOST_ENQ_RETRY_NUM)); 이 cnt가 남았는데
+retries가 되는 부분이 있는지, 얼마나 있을지 
+
+4. 3번 다음으로  dp_packet_delete(pkts[i]); 이 불리는데 이를 처음엔  flag를 세팅하여 여유공간이 몇퍼 이상일시 
+return하고 부족할 때 지우는 lazy 방식을 적용
+
+5. eventfd가 왜 현실성이 없는지에 대하여 생각. 
+실제로 실험해보면 어떤지 (iperf?) (ovs-dpdk는 유지해서)
+
+다음주 수요일 2시에보자
+
+
+이외 미팅내용
+
+0. 학부연구생 관리 관련 고민이 있다. 아무튼 강경운 변성진은 계속 볼만한 상태이다
+계속 흥미로운 결과를 가져오자
+
+1. 구글 코테는 queue로 돌아간다. 큐에 등록해놓으면 연락이온다. 
+
+2. murmur hash 기법 multiply rotate hash -> exact match cache에서 이를 판별하는 기법
+
+3. mbuf는 하나의 엄청 커다란 queue를 가져서 각 인덱스마다 기다란 mbuf 배열을 가진다.
+이를 다시 써야되니까 mbuf_free가 된다.
+
+4. mbuf_free가 cpu 사용량이 2.6%정도 되니까 이에 문제가 있을수도 있다.
+
+5. IOMMU와 DMA 미스테리
+
+6. mbuf를 카피가 안일어나고 container안의 어플리케이션에서 쓸 수 있게 (zero copy) 하고 
+mbuf pool을 그만큼 또 늘려주면되는거 -> 너무 어렵다 하지말자
+
+7. 위의 3번에서 cnt가 체크되는거가 cnt가 아직 양수인데 아래에서 지워질 수 있는 가능성이 존재할지도 모른다
+
+8. IOMMU기법자체는 시스템 메모리를 하나의 virtual address로 잡으려는 움직임
+
+9. 이번 실험에서 flow rule을 설정할 때 vlan tag와 달리 컨테이너 내부의 ip를 이용해서 flow rule을
+설정해 주었더니 일반적인 4.5gb/s 속도가 나온다.
+
+
+
+기타: 
+이는 4월 21일 논의된 연구방향 세가지중 첫번째에 관한 연구로
+
+속도가 왜 안나오는지에 대한 bottleneck을 파악하고 이를 개선하기 위함입니다.
+
+오늘 연구는 
+<실제 패킷이 어떻게 전달되는지에 대한 call flow . -> profiling을 보면서 bottleneck을 파악해보자>
+에서 시작되었으며
+
+
+두번째 관련 연구는 SR-IOV를 사용
+
+세번째 관련 연구는 CPU 사용량에 대해서이다. 
+
+
+

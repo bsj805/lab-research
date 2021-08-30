@@ -1,0 +1,22 @@
+
+4/28(수)
+
+1. 소스 인사이트와 같은 분석도구
+2. vhost 작동방식 
+3. vim add-on
+
+조사 내용: white(송신측)와 black측 container에서 operf 한 결과
+   ->black측 container에서 결과가 부적절하게 나와서 다시한번 테스트
+
+회의 내용: Container에서 성능은 직관적으로 봤을 때 10G가 충분히 나올 수 있는 환경
+   ->그렇다면 OVS Nic rx queue에서 tx queue로 보낼때(어떤 함수로 보내는지 체크) 성능이 부족해 drop발생추정(ovs에서 수많은 drop이 check) 
+   ->OVS call flow를 따라서 코드 분석을 해보자
+
+다음 주 회의 주제: OVS call flow 도식화 및 문제점 분석하기
+
+이는 4월 21일 논의된 연구방향 세가지중 첫번째에 관한 연구로
+
+속도가 왜 안나오는지에 대한 bottleneck을 파악하고 이를 개선하기 위함입니다.
+
+eventfd를 활용한 virtio-virtio 방식에서 vhostuser-vhostuser(dpdk활용)
+하는 것과 관련한 논의도 존재했습니다.

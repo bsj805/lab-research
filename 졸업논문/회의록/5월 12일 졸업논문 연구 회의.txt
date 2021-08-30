@@ -1,0 +1,45 @@
+5/12(수)
+
+ 
+
+조사내용:
+
+1.Bottleneck으로 추정되는 부분 copy 부분과
+
+( rte_vhost_enqueue_burst) - copy_mbuf_to_desc - rte_memcpy 부분
+
+ 
+
+2. address translation 부분 (IOMMU related part? 인지 아닌지)
+
+( rte_vhost_enqueue_burst) - copy_mbuf_to_desc - gpa_to_vva(dev,desc->addr) 부분
+
+ 
+
+3. while (cnt && (retries++ <= VHOST_ENQ_RETRY_NUM)); 이 cnt가 남았는데
+
+retries가 되는 부분이 있는지, 얼마나 있을지
+
+ 
+
+회의 내용:
+
+1. OVS drop은 대부분 dpdk-p0(NIC에 bind된 port)에서 rx drop이 발생
+
+   해당 드랍은 stats->rx_packets += count로 증가하는데 해당 drop이 발생할 때
+
+   packet의 byte를 일일이 검사해 해당 일을 처리하는데 걸리는 시간이 클 것이라 예상 
+
+=>주석처리 후 조사
+
+ 
+
+2. IOMMU관련 address translation은 현재 drop에 큰 영향을 끼칠것 같지는 않음.
+
+   추가적으로 lazy deletion도 cpu를 2퍼센트를 차지하는 함수한테 적용시키기에는
+
+   좋은 솔루션이 아닐 것 같다.
+
+ 
+
+3. vring address와 file descriptor의 mbuf address의 명확한 구분을 하고 소스코드 분석
