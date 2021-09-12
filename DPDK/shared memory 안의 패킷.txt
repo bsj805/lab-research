@@ -65,13 +65,16 @@ if(resize_and_map) 에 들어가면 shared address 주소인 data주소랑 같�
 
 
 drivers/net/vhost/rte_eth_vhost.c -> eth_dev_vhost_create에서 정의된 tx_pkt_burst-> eth_vhost_tx ->rte_vhost_enqueue_burst
-lib/librte_vhost/virtio_net.c  -> (rte_vhost_enqueue_burst) ->(virtio_dev_rx) -> virtio_dev_rx_split
+lib/librte_vhost/virtio_net.c  -> (rte_vhost_enqueue_burst) ->(virtio_dev_rx) -> virtio_dev_rx_split |||||||  host-> container
 
+
+drivers/net/vhost/rte_eth_vhost.c -> eth_dev_vhost_create에서 정의된 rx_pkt_burst-> eth_vhost_rx ->rte_vhost_dequeue_burst
+lib/librte_vhost/virtio_net.c -> (rte_vhost_dequeue_burst)->(virtio_dev_tx) -> virtio_dev_tx_split   |||||||||container-> host 
 
 포인터만 저장하는거
 ixgbe는 dev->rx_pkt_burst = ixgbe_recv_pkts_vec (우리 black host)
 컨테이너 안에서는
-drivers|net|virtio|virtio_ethdev.c| tx=virtio_xmit_pkts_inorder
+drivers|net|virtio|virtio_ethdev.c| tx=virtio_xmit_pkts_inorder  이게 
 drivers|net|virtio|virtio_ethdev.c| rx=virtio_recv_pkts_inorder
 이건 drivers|net|virtio|virtio_rxtx.c 에 존재.
 가 실행된다.
@@ -99,47 +102,6 @@ fp=fopen("/home/black/malloc_he_alloc_on_heap_id.txt","a");
 								1
 							0x7F2D 8000 0101
 							1값을 얻고 + memeory_segment 를 참조하도록 바꿔놓기
-30개중
-1번째: 
-0x1697f9bc0
-0x7f2ee97f9cc0
-7F2D 8000 0100
-
-30번쨰
-
-0x16980a800
-0x7f2ee980a900
-7F2D 8000 0100
-
-
-새로 해본거
-0x1697f8940
-0x7f7c297f8a40
-
-0x16980a800
-0x7f7c2980a900
-
-7F7A C000 0100
-
-(int*)0x7f7c2980a900=
-
-0x7feb85516000 0  INIT에서 생긴거 
-0x7feb05516000 1
-0x7feb45516000 elem list의 마지막 ALLOC에서 생긴거
-0x7feb6edb5380 패킷이 ELEM LIST의 마지막 주소 msl->base_va랑 동일.
-
-0x7feb45516000
-0x7feb45516000
-
-0x7f9e 274f 9000
-0x7f9d e74f 9000
-
-
-
-0x7f6e 03a9 7000 0번포트
-0x7f6e 03a9 7000
-0x7f6e 2d05 d340 패킷 주소
-
 
 lib/librte_vhost/virtio_net.c
 
@@ -202,3 +164,120 @@ m->bufaddr은 0x7f0f9a8c8600
 
 지금 cookie 바꾼데에서 문제가 생겨 (segmentation fault)
 왜냐 기존에 src 패킷 
+
+sshp = host의 0번 포트 공유메모리 주소 : 0x7fda6f668000
+
+
+lib/librte_eal/linux/eal.c docker 안에서 shmat으로 공유메모리주소 열음
+0x7f68811cc000이야 그게 (도커쪽 shmmem시작점)
+0x7fda98c33680 이 패킷 보내는 주소.(host쪽 패킷주소)
+0x7fda6f668000 host쪽 패킷 공유메모리
+0x7f68811cc000 저 차이를 구해서 여기에 더해주면된다.
+
+
+failing point
+
+vi drivers/net/virtio/virtio_rxtx.c
+
+virtqueue_dequeue_rx_inorder(vq,rcv_pkts,len,nb_used);
+밑에
+header에 (char*)로 접근하는 buf_addr이 접근불가능한 영역이니까
+if(vtpci_with_feature ) 문 아래에서
+이걸 접근하려니까 오류가나는거지.
+
+
+0x7f66e55b5000 container shmmem
+0x7f670eb80680 패킷주
+  1 내 생각에는
+  2 driver code process test-pmd process 가달라서
+  3 sharedmemory file
+  4 driver process test-pmd process shared memory 접근권한이 있나?
+  5 
+  6 
+  7 너의생각
+  8 
+                             
+
+제안서
+
+
+0x7f6ec8117b80 이게 CONTAINER에서 받은 ADDR
+
+0x7f6ec811c580 이게 넣은 addr 
+
+m->buf_addr= 0x7f6ec811c600
+
+
+0x7f6614063580
+0x7f6614063580
+
+
+0x7f04f826a000 
+0x7f0521835680 ea주소
+
+0x7f0521835580 m주소
+
+0x7f0521835600 우리가 바꾼m-> bufaddr
+
+
+0x7faa127379c0 3번째꺼 ==cookie[0]
+0x7faa127379c0
+
+0903-
+자 이제 txvq send 위에있는
+virtqueue_enqueue_xmit_inorder에서 cookie에 담기는 주소값을 조정하든지 해서 
+이쪽 black에서 받을 수 있도록 해야한다.
+그전에 black쪽의 
+
+drivers/net/vhost/rte_eth_vhost.c -> eth_dev_vhost_create에서 정의된 rx_pkt_burst-> eth_vhost_rx ->rte_vhost_dequeue_burst
+lib/librte_vhost/virtio_net.c -> (rte_vhost_dequeue_burst)->(virtio_dev_tx) -> virtio_dev_tx_split
+이 루틴을 통해서 패킷을 받는데, 둘이 desc[i]번째가 공유되는지를 보던가 (rx때 썼던 방식처럼)
+
+아니면 뭐, cookie값을 변경
+
+0x7faa127379c0 이게 container의 shared memory + offset
+0x7faa127379c0
+
+eth_vhost_tx가 끝나고나서부터 계속 fill_vec_buf_split이 불린다. 
+즉 virtio_dev_tx_split
+
+0x7fb8aa227580
+
+0x7f6663acc580 ==cookie
+
+0x7f6663acc674 ==addr
+
++F4
+컨테이너는 testpmd.h?
+black은 <rte_> 어디에 해놨으니 알아서 찾도록.
+
+
+log/original.txt
+컨테이너의 /orig.txt 가 
+/home/byeon/host_orig
+/home/byeon/cont_orig
+
+0907_abnormal_finish
+
+패킷이 32개가 다 가긴하는데, desc[idx].addr= 에 넣어서 넘기는데 
+[0~11] 에 들어있으면 [12]에 엑세스하고 이런문제.
+
+이후 현재 9개받은상태.
+
+알고보니 copy_enqueue 그 함수에서 batch_copy_elems 를 0으로만들길래 그걸로 했더니 9개만 가고 segfault
+알고보니, 원래도 0으로만드는게맞는데.
+
+
+host쪽에서
+
+변경된곳
+
+lib/librte_eal/common/eal_common_memory.c ->eal_memseg_list_alloc_shared
+
+전역변수로 넣어주는곳
+
+lib/librte_vhost/vhost_user.c virtio_is_ready
+
+
+
+

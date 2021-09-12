@@ -49,6 +49,7 @@ sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-
 sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  bruzn/ubuntunetplus:2.0  /bin/bash
 
 sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeonrx/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
 
  ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1,path=/var/run/vhost-net' -- -i --txd=1024 --rxd=1024 --nb-cores=1
 
@@ -162,6 +163,7 @@ root@8908b57ed6d3:/usr/src/dpdk-20.08/build/app# ./dpdk-testpmd -l 1-2 -n 4 --no
 ./testpmd -l 1-6 -n 4 --file-prefix=vhost --vdev 'net_vhost,iface=vhost-net,client=1,queues=1' --vdev 'net_vhost1,iface=vhost-net1,client=1,queues=1' --vdev 'net_vhost2,iface=vhost-net2,client=1,queues=1' --vdev 'net_vhost3,iface=vhost-net3,client=1,queues=1'  -- -i --port-topology=chained --nb-cores=4 --txd=1024 --rxd=1024
 ./dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
 ./build/app/dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/build/app/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
+./build/app/dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1
 testpmd>set fwd mac
 testpmd>start
 이런식으로 늘릴 수 있는거같다.
@@ -298,3 +300,9 @@ initialization할 때나 시작하기 직전에 vhost의 모든 메모리공간�
 
 
 783 나왔음
+0x7f43039db580
+
+0x7f43039db580
+
+buf->addr
+0x7f43039db600
