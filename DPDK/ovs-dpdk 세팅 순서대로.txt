@@ -46,10 +46,22 @@ sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-
 
 sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.2:/var/run  bruzn/ubuntunetplus:2.0  /bin/bash
 
-sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  bruzn/ubuntunetplus:2.0  /bin/bash
+sudo docker run --name blackcont -it --privileged -v /mnt/huge:/mnt/huge -v /usr/src/dpdk-stable-20.11.2:/var/run -v /home/kblast/dpdk-stable-20.11.2:/home  bruzn/ubuntunetplus:2.0  /bin/bash
 
 sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
 sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeonrx/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/kblast/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/kbmil/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeonmod:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+ctags -R --exclude=@.ctagsignore .
+
+출처: https://ls-al.tistory.com/97 [ls -al Life]
+sudo docker run -it --privileged -v /mnt/huge:/mnt/huge -v /home/byeon/dpdk-stable-20.11.2:/var/run -v /home/cont/dpdk-stable-20.11.2:/home  -v /dev:/dev --ipc=host bruzn/ubuntunetplus:2.0  /bin/bash
+
+
 
  ./dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1,path=/var/run/vhost-net' -- -i --txd=1024 --rxd=1024 --nb-cores=1
 
@@ -195,7 +207,7 @@ ninja -C build install
 ldconfig
 
 
-ovs-ctl --no-ovs-vswitchd start
+ovs-ctl --no-ovs-vswitchd start 
 ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true
 ovs-ctl --no-ovsdb-server --db-sock="$DB_SOCK" start
 ovs-vsctl --no-wait set Open_vSwitch . other_config:dpdk-init=true other_config:dpdk-lcore-mask=0x2 other_config:dpdk-socket-mem="1024"
@@ -306,3 +318,20 @@ initialization할 때나 시작하기 직전에 vhost의 모든 메모리공간�
 
 buf->addr
 0x7f43039db600
+black
+sudo build/app/dpdk-testpmd -l 5-6 -n 4 -v --file-prefix=vhost --vdev 'eth_vhost0,iface=vhost-net,queues=1' -- -i --txd=1024 --rxd=1024 --nb-cores=1
+
+cont
+./build/app/dpdk-testpmd -l 1-2 -n 4 --no-pci --vdev=net_virtio_user3,mac=00:00:00:00:00:01,path=/var/run/dpdk-stable-20.11.2/vhost-net -- -i --txd=1024 --rxd=1024 --nb-cores=1     
+
+white
+sudo usr/local/bin/pktgen -l 2,3-4 -n 2 --proc-type auto --log-level 8 --file-prefix pg -w 04:00.1 -- -v -T -P -j -m [3:4].0 -f themes/black-yellow.theme 
+
+tmux 복사하는법
+1. ctrl + a (bindkey) + [ 
+2. ctrl+space 로 복사시작
+3. ctrl+w로 tmux 버퍼로 복사
+4. 다른 윈도우에서 ctrl+a(bindkey) + ]로 붙여넣기
+
+https://gist.github.com/MohamedAlaa/2961058
+tmux

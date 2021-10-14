@@ -278,6 +278,9 @@ lib/librte_eal/common/eal_common_memory.c ->eal_memseg_list_alloc_shared
 
 lib/librte_vhost/vhost_user.c virtio_is_ready
 
+rte_malloc.h ( lib/librte_eal/include)에 시간변수
+
+drivers/net/ixgbe/ixgbe_rxtx_vec_sse.c  rte_eth_rx_burst가 부르는 ixgbe_recv_pkts_vec recv_raw_pkts_vec 에서 starttime찍고
 
 
-
+byeonmod : 기존 byeon에다가 수정한것.

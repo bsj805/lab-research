@@ -1,0 +1,7 @@
+오류났을때: m은 0x7fc3ecad2740 , m->bufaddr: 0x7f9808acc7c0 -> 컨테이너로 넣을때 buf_addr을 0x7f6c24ac67c0 로 바꿈
+
+hostshmkb: 0x7fc3c30b4000
+shmkb: 0x7f97df0ae000
+
+
+0x7fc3eca32e40 이 m주소인거고, 이건 보낼때의 m주소랑 같아야함.
