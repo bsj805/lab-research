@@ -1,0 +1,42 @@
+9월 27일
+
+black에 패킷이 도달할때~ 보내기 직전까지
+
+black에 패킷이 도달할때 ~ 컨테이너 패킷을 다시 받았을때까지
+
+패킷이 255개
+
+현재 패킷이 소량만 전송가능하다.
+
+
+
+개선방향 
+
+1. 보다 많은 패킷을 처리할 수 있도록 개선
+2. mbuf free를 시킬 수 있도록 개선
+3. container안에서 처리가 늦어지는 부분 확인 (container와 host부분 코드 최적화)
+7F54 C000 000C
+
+
+9월 28일
+
+패킷을 담고있도록 해보기
+
+
+7FD1 0D1A B840
+7FD1 0D1A A5C0
+
+일단 기존 작동방식:
+black: 0x16과 같은 주소를 vq로 넘겨받은 black쪽에서 해당 주소를 0x7f vva로 바꾸어 해당 위치에 패킷을 저장,
+container: 0x16에 패킷이 채워진것을 확인한 다음, 이 패킷을 cookie에 담아 tx함수 호출
+container: tx함수에서 이 mbuf패킷으로부터 주소 (0x16)를 추출해서 addr에 넣어주어 host에게 전달 
+black: host는 addr에 있는 0x16주소를 0x7f vva로 바꾸고 기존mbuf주소보다 0x100큰 주소를 copy dequeue 에 보내준다.
+
+현재 바뀌어져있는 작동방식 (byeonmod):
+black: 0x16과 같은 주소를 vq로 넘겨받은 black쪽에서 해당 주소를 0x7f vva로 바꾸어 해당 위치에 패킷을 저장,
+conatiner: 0x16이라는 주소를 prevaddr[32] 배열에 순서대로 저장 (나중에 container->black 위함)
+이 패킷을 cookie에 담아 tx함수 호출
+container: tx함수에서 prevaddr에 담긴주소(0x16)를 addr에 넣어주어 host에게 전달, 
+이때 0x16~ [0] 에 host쪽에서 읽을수있는 mbuf 포인터 저장해둠,
+black: host는 addr에있는 0x16주소를 0x7f vva로 바꾸고, 
+0x7f~[0]을 통해 mbuf포인터를 얻는다. 기존 mbuf주소보다 0x100 많은 주소를 dequeue에 보내준다.
